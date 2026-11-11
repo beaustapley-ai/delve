@@ -7,4 +7,4 @@ window.DELVE_API_URL = 'https://script.google.com/macros/s/AKfycbwOLcYv1nNW_Ukgx
 
 /* 2. Sign in with Google: your OAuth client id from Google Cloud
       (ends in .apps.googleusercontent.com). Leave it empty to hide the button. */
-window.DELVE_GOOGLE_CLIENT_ID = '';
+window.DELVE_GOOGLE_CLIENT_ID = '809824724396-g9rbd5amis4485n8ccqpv9i7bv0dpgt6.apps.googleusercontent.com';
