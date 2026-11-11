@@ -86,6 +86,9 @@ canvas#screen{display:block;margin:auto;}
 .vzoom:hover{opacity:1;}
 .vzoom button{font:600 14px "IBM Plex Mono",monospace;width:24px;height:24px;line-height:20px;padding:0;background:rgba(14,13,12,.8);
  color:var(--bone);border:1px solid var(--edge);border-radius:3px;cursor:pointer;}
+.vzoom #vzSnd{display:flex;align-items:center;justify-content:center;margin-top:4px;}
+.vzoom #vzSnd svg{width:14px;height:14px;display:block;}
+.vzoom #vzSnd.off{color:#7A756C;}
 .modeline{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;pointer-events:none;
  letter-spacing:.12em;padding:5px;color:var(--amber);background:rgba(14,13,12,.85);opacity:0;transition:opacity .12s;}
 .modeline.on{opacity:1;}
@@ -643,7 +646,7 @@ body.lay-under-tall .under{height:clamp(120px,24vh,260px);}
   <div class="statusrow" id="legend"></div>
 
   <div class="stage">
-    <div class="vzoom"><button type="button" id="vzIn" title="Zoom in (+)">+</button><button type="button" id="vzOut" title="Zoom out (&minus;)">&minus;</button></div>
+    <div class="vzoom"><button type="button" id="vzIn" title="Zoom in (+)">+</button><button type="button" id="vzOut" title="Zoom out (&minus;)">&minus;</button><button type="button" id="vzSnd" title="Sound" aria-label="Sound"></button></div>
     <canvas id="screen" width="748" height="462"></canvas>
     <div class="bossBar" id="bossBar" hidden></div>
     <div class="modeline" id="modeline"></div>
@@ -14689,6 +14692,8 @@ function cellFromEvent(e){
 /* zooming the map in play */
 $('vzIn').addEventListener('click',function(e){e.stopPropagation();viewZoom(1.15);});
 $('vzOut').addEventListener('click',function(e){e.stopPropagation();viewZoom(1/1.15);});
+$('vzSnd').addEventListener('click',function(e){e.stopPropagation();if(ui||over)return;musicPanel(function(){paint();});});
+setTimeout(function(){try{sndIcon();}catch(e){}},0);
 canvas.addEventListener('wheel',function(e){if(ui)return;e.preventDefault();viewZoom(e.deltaY<0?1.08:1/1.08);},{passive:false});
 (function(){
   var pts={},d0=0;
@@ -15277,6 +15282,7 @@ var VERSIONS=[
   'The soundtrack: Fall in Seconds plays under the game. Each book plays its own album, shuffled; the fifth plays all of them until it is written. A boss fades the song out and its own theme in, and when the fight ends the song comes back from where it stopped. The soundtrack page on the title screen plays any album, with a link to the YouTube channel. Music button and Settings \u2192 Sound for volume, skipping and turning it off.',
   'Delve has its own website now, so a link opens on any phone or tablet in the browser \u2014 no app needed. Add it to your home screen and it opens full screen.',
   'Phones: the floor and book now sit on the Floor line, the objective lives on your character sheet, and Settings \u2192 Layout sets button size, hides the arrow pad (tap the map to step instead), moves it left or right, cuts the stat bar down to HP/FP/level/floor, chooses what sits under the map, and puts the buttons on one swipeable line. Turn the phone sideways and the map takes the full height with the controls down one side (left or right).',
+  'A small speaker on the map, under the zoom buttons: tap it for the sound panel (pause, skip, volume, music and boss theme on or off). It shows crossed out when the music is off.',
   'Settings and Music buttons on the touch bar. Remove any button from the bar (Settings \u2192 Buttons, or press and hold it).',
   'The log says what is left in what you hit: \u201cYou hit the rat for 4. (6/10 left)\u201d.',
   'Prayer: Make more of me (+max health), Raise me (a whole level), Bless my flasks \u2014 and one gamble, Ask for more than is yours, which can give a level, health or a lesson, or take a level, a stat step, or shut one of your abilities for a while.',
@@ -18614,7 +18620,17 @@ var YT_CHANNEL='https://www.youtube.com/@fallinseconds';
 var SND_DEF={music:1,vol:0.6,boss:1,np:1};
 var SND=(function(){var o=null;try{o=JSON.parse(localStorage.getItem('delve.sound')||'null');}catch(e){}
   var r={};Object.keys(SND_DEF).forEach(function(k){r[k]=o&&o[k]!==undefined?o[k]:SND_DEF[k];});return r;})();
-function sndSave(){try{localStorage.setItem('delve.sound',JSON.stringify(SND));}catch(e){}}
+function sndSave(){try{localStorage.setItem('delve.sound',JSON.stringify(SND));}catch(e){}sndIcon();}
+/* the little speaker on the map: shows whether music is on, and opens the sound panel */
+function sndIcon(){
+  var b=document.getElementById('vzSnd');if(!b)return;
+  var on=SND.music&&SND.vol>0&&!(typeof MUS!=='undefined'&&MUS.paused);
+  var key=on?'on':'off';if(b._k===key)return;b._k=key;
+  b.className=on?'':'off';b.title=on?'Sound \u2014 music on':'Sound \u2014 music off';
+  b.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+    '<path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor" stroke="none"/>'+
+    (on?'<path d="M10.5 5.5a3.5 3.5 0 0 1 0 5"/><path d="M12.5 3.5a6.3 6.3 0 0 1 0 9"/>':'<path d="M10.5 6l4 4M14.5 6l-4 4"/>')+'</svg>';
+}
 function musicBase(){
   var h=location.hostname||'';
   if(/\.github\.io$/i.test(h)){var seg=(location.pathname.split('/')[1]||'');return location.origin+'/'+(seg&&!/\./.test(seg)?seg+'/':'');}
@@ -18896,6 +18912,7 @@ function soundtrackScreen(){
   musicPanelRefresh();
 }
 function musicPanelRefresh(){
+  sndIcon();
   var n=$('stNow');
   if(n){n.textContent=MUS.cur?('♪ '+MUS.cur.n+(MUS.cur.a?' · Book '+['I','II','III','IV','V'][MUS.cur.a-1]:'')):(musicCount()?'Nothing playing':'');
     [].forEach.call(document.querySelectorAll('.stTrack'),function(b){b.classList.toggle('on',!!MUS.cur&&b.textContent===MUS.cur.n);});}
@@ -18913,11 +18930,14 @@ function musicPanel(back){
   mk('⏯ Pause',function(){if(MUS.el&&!MUS.el.paused)musicPause();else{if(!SND.music){SND.music=1;sndSave();}musicResume();}},'mpPP');
   mk('⏭ Next song',function(){if(!SND.music){SND.music=1;sndSave();}musicNext();});
   mk(SND.music?'Music off':'Music on',function(){SND.music=SND.music?0:1;sndSave();if(SND.music)musicSync();else musicHalt();musicPanel(back);});
+  mk(SND.boss?'Boss theme off':'Boss theme on',function(){SND.boss=SND.boss?0:1;sndSave();if(!SND.boss&&MUS.boss)musicBoss(false);musicPanel(back);});
   var vol=el('input','stVol');vol.type='range';vol.min='0';vol.max='1';vol.step='0.05';vol.value=String(SND.vol);
   vol.addEventListener('input',function(){SND.vol=+vol.value;sndSave();musicVol(SND.vol,0.1);});
   var vl=el('label','stVolL','Volume ');vl.appendChild(vol);ctl.appendChild(vl);
   wrap.appendChild(ctl);
   var yt=el('a','stYT','▶ Fall in Seconds on YouTube');yt.href=YT_CHANNEL;yt.target='_blank';yt.rel='noopener';wrap.appendChild(yt);
+  var more=el('div','stCtl');var ms=el('button','icBtn','All sound settings');ms.type='button';
+  ms.addEventListener('click',function(){closeUI();settingsScreen('sound',function(){if(back)back();});});more.appendChild(ms);wrap.appendChild(more);
   body.appendChild(wrap);
   var an=musicAlbumNow(),has=an&&MUS.tracks&&MUS.tracks[an]&&MUS.tracks[an].length;
   modal({title:'Music',flavor:'Fall in Seconds — '+(an?(has||!MUS.tracks?'this book plays '+(BOOKS[an-1]||{n:''}).n+'.':(BOOKS[an-1]||{n:'This book'}).n+' has no songs yet, so every album plays, shuffled.'):'each book plays its own album.'),
