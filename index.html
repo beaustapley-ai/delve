@@ -18648,25 +18648,37 @@ function musicLoad(done){
   try{var c=JSON.parse(localStorage.getItem('delve.tracks')||'null');
     if(c&&c.base===base&&Date.now()-c.t<6*3600*1000&&c.list&&Object.keys(c.list).length)return finish(c.list);}catch(e){}
   var keep=function(list){try{localStorage.setItem('delve.tracks',JSON.stringify({t:Date.now(),base:base,list:list}));}catch(e){}};
-  var norm=function(n,files){return files.filter(function(f){return AUDIO_RX.test(f);}).sort().map(function(f){
-    return {n:trackTitle(f.split('/').pop()),u:base+'music/'+f.split('/').map(encodeURIComponent).join('/'),a:n};});};
+  /* paths are repository paths, e.g. music/album1/Song.mp3 */
+  var norm=function(n,paths,raw){return paths.filter(function(f){return AUDIO_RX.test(f);}).sort().map(function(f){
+    var t={n:trackTitle(f.split('/').pop()),u:base+f.split('/').map(encodeURIComponent).join('/'),a:n};
+    if(raw&&raw[f])t.r=raw[f];      /* the raw file on GitHub, if the site will not hand it over */
+    return t;});};
   /* 1. a list written by hand, if there is one */
   fetch(base+'music/tracks.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){
     var list={};Object.keys(j||{}).forEach(function(k){var n=albumNo(k);if(!n||!Array.isArray(j[k]))return;
-      list[n]=norm(n,j[k].map(function(f){return /\//.test(f)?f:(k+'/'+f);}));});
+      list[n]=norm(n,j[k].map(function(f){return 'music/'+(/\//.test(f)?f:(k+'/'+f));}));});
     if(!Object.keys(list).length)throw 0;keep(list);finish(list);
   }).catch(function(){
-    /* 2. what is in the repository's music folder */
-    var R=musicRepo(),api='https://api.github.com/repos/'+R.o+'/'+R.r+'/contents/music';
-    fetch(api).then(function(r){if(!r.ok)throw new Error('GitHub said '+r.status);return r.json();}).then(function(dirs){
-      var albums=(dirs||[]).filter(function(d){return d.type==='dir'&&albumNo(d.name);});
-      if(!albums.length){finish({},'No album folders in music/ yet.');return;}
+    /* 2. what is in the repository: music/album1 … — or folders at the top
+       called "music:album1" (what a Mac makes of a folder named music/album1) */
+    var R=musicRepo(),api='https://api.github.com/repos/'+R.o+'/'+R.r+'/contents/';
+    var isAlbum=function(d){return d.type==='dir'&&albumNo(d.name);};
+    var gather=function(albums){
+      if(!albums.length){finish({},'No album folders found yet (music/album1 …).');return;}
       var list={},left=albums.length;
       albums.forEach(function(d){
-        fetch(api+'/'+encodeURIComponent(d.name)).then(function(r){return r.ok?r.json():[];}).then(function(files){
-          var n=albumNo(d.name);
-          list[n]=(list[n]||[]).concat(norm(n,(files||[]).filter(function(f){return f.type==='file';}).map(function(f){return d.name+'/'+f.name;})));
+        fetch(api+d.path.split('/').map(encodeURIComponent).join('/')).then(function(r){return r.ok?r.json():[];}).then(function(files){
+          var n=albumNo(d.name.replace(/^music\W*/i,''));
+          var fl=(files||[]).filter(function(f){return f.type==='file';}),raw={};fl.forEach(function(f){if(f.download_url)raw[f.path]=f.download_url;});
+          list[n]=(list[n]||[]).concat(norm(n,fl.map(function(f){return f.path;}),raw));
         }).catch(function(){}).then(function(){if(--left===0){if(Object.keys(list).length)keep(list);finish(list);}});
+      });
+    };
+    fetch(api+'music').then(function(r){return r.ok?r.json():[];}).then(function(dirs){
+      var albums=(Array.isArray(dirs)?dirs:[]).filter(isAlbum);
+      if(albums.length)return gather(albums);
+      return fetch(api).then(function(r){if(!r.ok)throw new Error('GitHub said '+r.status);return r.json();}).then(function(top){
+        gather((top||[]).filter(function(d){return d.type==='dir'&&/^music\W*album/i.test(d.name);}));
       });
     }).catch(function(e){finish({},String(e&&e.message||e));});
   });
@@ -18684,7 +18696,10 @@ function musicEl(){
   if(MUS.el)return MUS.el;
   var a=new Audio();a.preload='auto';a.crossOrigin='anonymous';a.setAttribute('playsinline','');
   a.addEventListener('ended',function(){musicNext();});
-  a.addEventListener('error',function(){if(MUS.cur){MUS.cur.bad=1;setTimeout(musicNext,400);}});
+  a.addEventListener('error',function(){
+    var c=MUS.cur;if(!c)return;
+    if(c.r&&!c.triedRaw){c.triedRaw=1;c.u=c.r;a.src=c.r;var p=a.play();if(p&&p.catch)p.catch(function(){});return;}
+    c.bad=1;setTimeout(musicNext,400);});
   MUS.el=a;
   try{
     var AC=window.AudioContext||window.webkitAudioContext;
