@@ -613,6 +613,11 @@ body.lay-under-tall .under{height:clamp(120px,24vh,260px);}
 .stList{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px;}
 .stTrack{font:inherit;font-size:11.5px;text-align:left;color:var(--bone);background:#16171B;border:1px solid var(--edge);border-radius:4px;padding:7px 9px;cursor:pointer;}
 .stTrack:hover{border-color:#C89A50;}.stTrack.on{border-color:#C89A50;color:var(--amber);background:#24201A;}
+.acForm{margin:0;}
+.gsiBox{margin:12px 0 4px;text-align:center;}
+.gsiOr{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6A655D;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.gsiOr:before,.gsiOr:after{content:"";flex:1;border-top:1px solid var(--edge);}
+.gsiSlot{display:flex;justify-content:center;min-height:44px;color:var(--dust);font-size:11px;align-items:center;}
 </style>
 </head>
 <body>
@@ -15283,6 +15288,7 @@ var VERSIONS=[
   'Delve has its own website now, so a link opens on any phone or tablet in the browser \u2014 no app needed. Add it to your home screen and it opens full screen.',
   'Phones: the floor and book now sit on the Floor line, the objective lives on your character sheet, and Settings \u2192 Layout sets button size, hides the arrow pad (tap the map to step instead), moves it left or right, cuts the stat bar down to HP/FP/level/floor, chooses what sits under the map, and puts the buttons on one swipeable line. Turn the phone sideways and the map takes the full height with the controls down one side (left or right).',
   'A small speaker on the map, under the zoom buttons: tap it for the sound panel (pause, skip, volume, music and boss theme on or off). It shows crossed out when the music is off.',
+  'Signing in: the browser now offers to remember your password (and fills in your email next time), and on the website there is a Sign in with Google button.',
   'Settings and Music buttons on the touch bar. Remove any button from the bar (Settings \u2192 Buttons, or press and hold it).',
   'The log says what is left in what you hit: \u201cYou hit the rat for 4. (6/10 left)\u201d.',
   'Prayer: Make more of me (+max health), Raise me (a whole level), Bless my flasks \u2014 and one gamble, Ask for more than is yours, which can give a level, health or a lesson, or take a level, a stat step, or shut one of your abilities for a while.',
@@ -16010,11 +16016,13 @@ function captureKey(id,idx,btn){
 /* the page is being served by Apps Script (so there is somewhere to sign in to) */
 function isHostedPage(){return !!(window.google&&google.script&&google.script.run);}
 /* a labelled input; a password one gets a Show / Hide button beside it */
-function acField(lbl,type,val,ph){
+function acField(lbl,type,val,ph,name){
   var r=el('label','acField');r.appendChild(el('span','',lbl));
   var wrapI=el('span','acInput');
   var inp=document.createElement('input');inp.type=type;inp.value=val||'';inp.placeholder=ph||'';
-  inp.autocomplete=type==='password'?'current-password':(type==='email'?'email':'off');
+  inp.autocomplete=type==='password'?'current-password':(type==='email'?'username':'off');
+  if(name){inp.name=name;inp.id='ac_'+name+'_'+(acField.n=(acField.n||0)+1);}
+  if(type==='email'){inp.autocapitalize='off';inp.inputMode='email';}
   inp.spellcheck=false;
   inp.addEventListener('keydown',function(e){e.stopPropagation();});inp.addEventListener('keyup',function(e){e.stopPropagation();});
   wrapI.appendChild(inp);
@@ -16077,42 +16085,55 @@ function accountPane(body){
    The first thing on the page when it is served from its link. Three ways in:
    sign in, make an account, or get back in with a code. */
 var loginMode='in';
+/* The sign-in fields sit in a real form, named the way password managers
+   expect (username / current-password), and a successful sign-in is handed to
+   the browser's own password store where it has one — so the browser offers
+   to remember the password, and fills it in next time. */
+function lastEmail(){try{return localStorage.getItem('delve.lastEmail')||'';}catch(e){return '';}}
+function rememberLogin(email,pw){
+  try{localStorage.setItem('delve.lastEmail',String(email||'').trim());}catch(e){}
+  try{if(pw&&window.PasswordCredential&&navigator.credentials&&navigator.credentials.store)
+    navigator.credentials.store(new PasswordCredential({id:String(email).trim(),password:pw,name:String(email).trim()})).catch(function(){});}catch(e){}
+}
 function loginScreen(mode){
   if(mode)loginMode=mode;
   var body=$('codexBody');body.textContent='';
   var wrap=el('div','acctPane loginPane');
   var msg=el('div','kbMsg');
   var say2=function(t,cls){msg.className='kbMsg'+(cls?' '+cls:'');msg.textContent=t;};
+  var form=document.createElement('form');form.method='post';form.action='#';form.autocomplete='on';form.className='acForm';
   var btnRow=el('div','kbActs');
-  var link=function(txt,m){var b=el('button','icBtn',txt);b.addEventListener('click',function(){loginScreen(m);});return b;};
-  var enter=function(fields,fn){fields.forEach(function(f){f.inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();fn();}});});};
-  var done=function(r){if(!r.ok)return say2(r.error||'That did not work.','bad');acctTake(r);closeUI();titleScreen();};
+  var link=function(txt,m){var b=el('button','icBtn',txt);b.type='button';b.addEventListener('click',function(){loginScreen(m);});return b;};
+  var submitBtn=function(txt){var b=el('button','icBtn main',txt);b.type='submit';return b;};
+  var onSubmit=function(fn){form.addEventListener('submit',function(e){e.preventDefault();fn();});};
+  var done=function(r,email,pw){if(!r.ok)return say2(r.error||'That did not work.','bad');
+    rememberLogin(email||r.email,pw);acctTake(r);closeUI();titleScreen();};
   if(loginMode==='in'){
-    var e1=acField('Email','email','',''),p1=acField('Password','password','','');
-    wrap.appendChild(e1.row);wrap.appendChild(p1.row);
-    var go=function(){say2('Signing in…');accCall('login',[e1.inp.value,p1.inp.value],done);};
-    var b=el('button','icBtn main','Sign in');b.addEventListener('click',go);enter([e1,p1],go);
-    btnRow.appendChild(b);btnRow.appendChild(link('Create account','new'));btnRow.appendChild(link('Forgot password','forgot'));
-    setTimeout(function(){try{e1.inp.focus();}catch(e){}},80);
+    var e1=acField('Email','email',lastEmail(),'','username'),p1=acField('Password','password','','','password');
+    form.appendChild(e1.row);form.appendChild(p1.row);
+    onSubmit(function(){say2('Signing in…');var em=e1.inp.value,pw=p1.inp.value;
+      accCall('login',[em,pw],function(r){done(r,em,pw);});});
+    btnRow.appendChild(submitBtn('Sign in'));btnRow.appendChild(link('Create account','new'));btnRow.appendChild(link('Forgot password','forgot'));
+    setTimeout(function(){try{(e1.inp.value?p1.inp:e1.inp).focus();}catch(e){}},80);
   } else if(loginMode==='new'){
-    var e2=acField('Email','email','',''),p2=acField('Password','password','','at least 8 characters'),
-        n2=acField('Player name','text',playerName(),'the name on the record');
+    var e2=acField('Email','email','','','username'),p2=acField('Password','password','','at least 8 characters','new-password'),
+        n2=acField('Player name','text',playerName(),'the name on the record','player');
     p2.inp.autocomplete='new-password';n2.inp.maxLength=18;
-    [e2,p2,n2].forEach(function(f){wrap.appendChild(f.row);});
-    wrap.appendChild(el('p','legendNote','Your player name is what the record shows and what your saves are filed under. If you have played before, use the same name and your saves come with it.'));
-    var go2=function(){
+    [e2,p2,n2].forEach(function(f){form.appendChild(f.row);});
+    form.appendChild(el('p','legendNote','Your player name is what the record shows and what your saves are filed under. If you have played before, use the same name and your saves come with it.'));
+    onSubmit(function(){
       if(p2.inp.value.length<8)return say2('The password needs at least 8 characters.','bad');
       if(!n2.inp.value.trim())return say2('Give a player name.','bad');
-      say2('Making the account…');accCall('register',[e2.inp.value,p2.inp.value,n2.inp.value],done);};
-    var b2=el('button','icBtn main','Create account');b2.addEventListener('click',go2);enter([e2,p2,n2],go2);
-    btnRow.appendChild(b2);btnRow.appendChild(link('Back to sign in','in'));
+      say2('Making the account…');var em=e2.inp.value,pw=p2.inp.value;
+      accCall('register',[em,pw,n2.inp.value],function(r){done(r,em,pw);});});
+    btnRow.appendChild(submitBtn('Create account'));btnRow.appendChild(link('Back to sign in','in'));
     setTimeout(function(){try{e2.inp.focus();}catch(e){}},80);
   } else {
-    var e3=acField('Email','email','',''),c3=acField('Code','text','','6 digits from the email'),
-        p4=acField('New password','password','','at least 8 characters');
-    p4.inp.autocomplete='new-password';
-    wrap.appendChild(e3.row);
-    var send=el('button','icBtn','Email me a code');
+    var e3=acField('Email','email',lastEmail(),'','username'),c3=acField('Code','text','','6 digits from the email','code'),
+        p4=acField('New password','password','','at least 8 characters','new-password');
+    p4.inp.autocomplete='new-password';c3.inp.autocomplete='one-time-code';c3.inp.inputMode='numeric';
+    form.appendChild(e3.row);
+    var send=el('button','icBtn','Email me a code');send.type='button';
     send.addEventListener('click',function(){
       say2('Sending…');
       accCall('requestReset',[e3.inp.value],function(r){
@@ -16120,17 +16141,90 @@ function loginScreen(mode){
         say2('If there is an account with that email, a 6-digit code is on its way. It works for 30 minutes.','ok');
       });
     });
-    wrap.appendChild(send);wrap.appendChild(c3.row);wrap.appendChild(p4.row);
-    var go3=function(){say2('Checking…');accCall('resetPassword',[e3.inp.value,c3.inp.value,p4.inp.value],done);};
-    var b3=el('button','icBtn main','Set new password');b3.addEventListener('click',go3);enter([c3,p4],go3);
-    btnRow.appendChild(b3);btnRow.appendChild(link('Back to sign in','in'));
+    form.appendChild(send);form.appendChild(c3.row);form.appendChild(p4.row);
+    onSubmit(function(){say2('Checking…');var em=e3.inp.value,pw=p4.inp.value;
+      accCall('resetPassword',[em,c3.inp.value,pw],function(r){done(r,em,pw);});});
+    btnRow.appendChild(submitBtn('Set new password'));btnRow.appendChild(link('Back to sign in','in'));
   }
-  wrap.appendChild(btnRow);wrap.appendChild(msg);
+  form.appendChild(btnRow);
+  wrap.appendChild(form);
+  if(loginMode!=='forgot')googleSignInBlock(wrap,say2,done);
+  wrap.appendChild(msg);
   body.appendChild(wrap);
   modal({title:'Delve',mark:'#C89A50',
     flavor:loginMode==='in'?'Sign in to go down.':(loginMode==='new'?'Make an account.':'Get back in.'),
     noClose:1,narrow:1});
   body.hidden=false;
+}
+
+/* ═══════════════ Sign in with Google (v0.25) ═══════════════
+   On the game's own website, with a Google client id in config.js, a "Sign in
+   with Google" button sits under the form. Google hands the page a signed
+   token; the back end (googleLogin in Api.gs) checks it with Google and signs
+   you in to the account with that email — or makes one, once you have picked
+   a player name. */
+function googleClientId(){var c=String(window.DELVE_GOOGLE_CLIENT_ID||'');return /\.apps\.googleusercontent\.com$/.test(c)?c:'';}
+var GSI_STATE=0,GSI_WAIT=[];
+function loadGsi(cb){
+  if(GSI_STATE===2)return setTimeout(function(){cb(true);},0);
+  GSI_WAIT.push(cb);if(GSI_STATE===1)return;GSI_STATE=1;
+  /* the Google library writes to window.google, which is also where the
+     back end's google.script lives here: keep it safe across the load */
+  var keep=window.google&&window.google.script;
+  var sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
+  var fin=function(ok){if(keep&&window.google&&!window.google.script)window.google.script=keep;
+    GSI_STATE=ok?2:0;var w=GSI_WAIT;GSI_WAIT=[];w.forEach(function(f){f(ok);});};
+  sc.onload=function(){fin(!!(window.google&&window.google.accounts&&window.google.accounts.id));};
+  sc.onerror=function(){fin(false);};
+  document.head.appendChild(sc);
+}
+function googleSignInBlock(wrap,say2,done){
+  var cid=googleClientId();
+  if(!cid||!window.DELVE_FETCH)return;
+  var box=el('div','gsiBox');
+  box.appendChild(el('div','gsiOr','or'));
+  var slot=el('div','gsiSlot');box.appendChild(slot);
+  wrap.appendChild(box);
+  loadGsi(function(ok){
+    if(!ok||!slot.isConnected){if(slot.isConnected)slot.textContent='Google sign-in could not load here.';return;}
+    try{
+      google.accounts.id.initialize({client_id:cid,ux_mode:'popup',auto_select:false,cancel_on_tap_outside:true,
+        callback:function(resp){googleCredential(resp&&resp.credential,say2,done);}});
+      google.accounts.id.renderButton(slot,{theme:'filled_black',size:'large',text:'signin_with',shape:'rectangular',
+        width:Math.min(300,Math.max(200,(wrap.clientWidth||300)-10))});
+    }catch(e){slot.textContent='Google sign-in could not load here.';}
+  });
+}
+function googleCredential(cred,say2,done,player){
+  if(!cred)return say2('Google did not hand anything back. Try again.','bad');
+  say2('Checking with Google…');
+  accCall('googleLogin',[cred,player||''],function(r){
+    if(r&&r.ok)return done(r,r.email,'');
+    if(r&&r.need==='player')return googlePlayerName(cred,r,done);
+    say2((r&&r.error)||'That did not work.','bad');
+  });
+}
+/* a first sign-in with Google: the one thing the account still needs */
+function googlePlayerName(cred,r,done){
+  var body=$('codexBody');body.textContent='';
+  var wrap=el('div','acctPane loginPane');
+  var msg=el('div','kbMsg');
+  var say2=function(t,cls){msg.className='kbMsg'+(cls?' '+cls:'');msg.textContent=t;};
+  var form=document.createElement('form');form.action='#';
+  var n=acField('Player name','text',playerName(),'the name on the record','player');n.inp.maxLength=18;
+  form.appendChild(n.row);
+  form.appendChild(el('p','legendNote','This is what the record shows and what your saves are filed under. If you have played before, use the same name and your saves come with it.'));
+  var row=el('div','kbActs');var b=el('button','icBtn main','Make my account');b.type='submit';row.appendChild(b);
+  var back=el('button','icBtn','Back');back.type='button';back.addEventListener('click',function(){loginScreen('in');});row.appendChild(back);
+  form.appendChild(row);
+  form.addEventListener('submit',function(e){e.preventDefault();
+    if(!n.inp.value.trim())return say2('Give a player name.','bad');
+    googleCredential(cred,say2,done,n.inp.value);});
+  wrap.appendChild(form);wrap.appendChild(msg);body.appendChild(wrap);
+  if(r&&r.error)say2(r.error,r.taken?'bad':'');
+  modal({title:'Delve',mark:'#C89A50',flavor:'Signed in with Google as '+(r.email||'you')+'. Pick a player name to finish.',noClose:1,narrow:1});
+  body.hidden=false;
+  setTimeout(function(){try{n.inp.focus();n.inp.select();}catch(e){}},80);
 }
 
 /* What each action is for, for the controls list. The keys come off the
