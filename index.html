@@ -18657,7 +18657,7 @@ function musicLoad(done){
   if(MUS.loading)return;
   MUS.loading=true;
   var finish=function(list,err){
-    MUS.loading=false;MUS.tracks=list||{};MUS.err=err||'';
+    MUS.loading=false;MUS.tracks=albumSort(list||{});MUS.err=err||'';
     var w=MUS.waiters;MUS.waiters=[];w.forEach(function(f){try{f(MUS.tracks);}catch(e){}});
   };
   var base=musicBase();
@@ -18698,6 +18698,28 @@ function musicLoad(done){
       });
     }).catch(function(e){finish({},String(e&&e.message||e));});
   });
+}
+/* The running order of each album, as released on Suno. The soundtrack page
+   lists and plays them in this order; in the dungeon they are shuffled. A song
+   not in the list (a new one) goes on the end. */
+var ALBUM_ORDER={
+ 1:['Alone, Beneath',"The Flame's Kiss",'Oblation','Devour Me Gently','Broadcast Revelation (You\u2019re Mine)','Spark & Smoke',
+    'Why\u2019d You Sing Me Down','I Wish I Could Forget','Pentimento','Darvaza','Down to the Deep Within','Vestigal'],
+ 2:['The Mirror Sea','Drink the Sound','Glasswater','Resaca','Wear Masks Like Mine','Draw Me Close','Borrowed Night','Threshold',
+    'Drowned Twice','Acedia','Tie the Knot'],
+ 3:['The Knot Divine','Silken Noose','Fever Pitch','For Me, Not You','Kintsu','Veinflower','Half-Life','Red Silhouette',
+    'Heartstrings','Condemned'],
+ 4:['Memory in the Canopy'],
+ 5:[]
+};
+function titleKey(t){return String(t||'').toLowerCase().replace(/[\u2018\u2019\u02bc`]/g,"'").replace(/\s*\(\d+\)\s*$/,'').replace(/\s+/g,' ').trim();}
+function albumSort(list){
+  Object.keys(list).forEach(function(k){
+    var ord=(ALBUM_ORDER[k]||[]).map(titleKey);
+    var at=function(t){var i=ord.indexOf(titleKey(t.n));return i<0?999:i;};
+    list[k]=list[k].slice().sort(function(a,b){return at(a)-at(b)||(a.n<b.n?-1:a.n>b.n?1:0);});
+  });
+  return list;
 }
 function musicCount(){var n=0;if(MUS.tracks)Object.keys(MUS.tracks).forEach(function(k){n+=MUS.tracks[k].length;});return n;}
 function albumTracks(n){
@@ -18780,6 +18802,11 @@ function musicPlay(t,at){
   musicPanelRefresh();
 }
 function musicNext(){
+  /* the soundtrack page plays an album straight through, from the song you picked */
+  if(MUS.menu&&MUS.menuSeq&&MUS.menuSeq.list.length){
+    var S=MUS.menuSeq;for(var k=0;k<S.list.length;k++){S.i=(S.i+1)%S.list.length;if(!S.list[S.i].bad){musicPlay(S.list[S.i]);return;}}
+    return;
+  }
   var n=MUS.menu?MUS.menuAlbum:(MUS.album||musicAlbumNow());
   var list=MUS.menu&&MUS.menuAll?MUS.menuAll:albumTracks(n);if(!list.length)return;
   var key=MUS.menu&&MUS.menuAll?'menu':n;
@@ -18876,7 +18903,7 @@ function soundtrackScreen(){
   var top=el('div','stNow');top.id='stNow';wrap.appendChild(top);
   var ctl=el('div','stCtl');
   var mk=function(t,f,id){var b=el('button','icBtn',t);b.type='button';if(id)b.id=id;b.addEventListener('click',f);ctl.appendChild(b);return b;};
-  mk('Shuffle all',function(){MUS.menuAll=[];Object.keys(MUS.tracks||{}).forEach(function(k){MUS.menuAll=MUS.menuAll.concat(MUS.tracks[k]);});MUS.order.menu=null;musicNext();});
+  mk('Shuffle all',function(){MUS.menuSeq=null;MUS.menuAll=[];Object.keys(MUS.tracks||{}).forEach(function(k){MUS.menuAll=MUS.menuAll.concat(MUS.tracks[k]);});MUS.order.menu=null;musicNext();});
   mk('⏯ Pause',function(){if(MUS.el&&!MUS.el.paused)musicPause();else musicResume();},'stPP');
   mk('⏭ Next',function(){musicNext();});
   var vol=el('input','stVol');vol.type='range';vol.min='0';vol.max='1';vol.step='0.05';vol.value=String(SND.vol);
@@ -18887,8 +18914,8 @@ function soundtrackScreen(){
   wrap.appendChild(yt);
   var lists=el('div','stLists');lists.textContent='Finding the songs…';wrap.appendChild(lists);
   body.appendChild(wrap);
-  modal({title:'The soundtrack',flavor:'Fall in Seconds. Each book of the dungeon plays its own album, shuffled. Tap a song to play it.',
-    btn:'Back',go:function(){MUS.menu=false;MUS.menuAll=null;closeUI();if(MUS.el&&!MUS.el.paused)musicFadeStop();titleScreen();},noClose:1});
+  modal({title:'The soundtrack',flavor:'Fall in Seconds. Each book of the dungeon plays its own album, shuffled. Here they run in album order: tap a song and the album plays on from there.',
+    btn:'Back',go:function(){MUS.menu=false;MUS.menuAll=null;MUS.menuSeq=null;closeUI();if(MUS.el&&!MUS.el.paused)musicFadeStop();titleScreen();},noClose:1});
   body.hidden=false;
   musicLoad(function(){
     if(!lists.isConnected)return;
@@ -18900,9 +18927,8 @@ function soundtrackScreen(){
       var h=el('p','legendHead','Book '+['I','II','III','IV','V'][n-1]+' · '+B.n);h.style.color=B.glow||'';lists.appendChild(h);
       if(!list.length){lists.appendChild(el('p','legendNote','Not written yet.'));continue;}
       var ul=el('div','stList');
-      list.forEach(function(t,i){var r=el('button','stTrack'+(MUS.cur===t?' on':''),t.n);r.type='button';
-        r.addEventListener('click',function(){MUS.menuAll=null;MUS.menuAlbum=t.a;
-          MUS.order[t.a]=shuffle(list.map(function(_,j){return j;}).filter(function(j){return j!==i;}));MUS.order[t.a].unshift(i);MUS.pos[t.a]=0;
+      list.forEach(function(t,i,arr){var r=el('button','stTrack'+(MUS.cur===t?' on':''),t.n);r.type='button';
+        r.addEventListener('click',function(){MUS.menuAll=null;MUS.menuAlbum=t.a;MUS.menuSeq={list:arr,i:i};
           musicPlay(t);});
         ul.appendChild(r);});
       lists.appendChild(ul);
