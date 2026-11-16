@@ -15764,8 +15764,11 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.26.1';
+var GAME_VERSION='0.26.2';
 var VERSIONS=[
+ {v:'0.26.2',d:'16 Nov 2026',n:[
+  'Runs that never made it to the shared board (a failed send, the page closed too soon) are sent again from the browser they were played in, as soon as the game loads there or the record is opened. If a send fails, the record now says so instead of keeping quiet.'
+ ]},
  {v:'0.26.1',d:'16 Nov 2026',n:[
   'The record fetches every run on the shared board, by everybody, so each run\u2019s place is out of all of them \u2014 it used to stop at the top fifty, so lower-scoring runs (and whole players) went missing. It shows the top hundred in whatever order you sort by.',
   'The record asks the shared board again each time you open it, so runs other people finish while you are playing turn up without reloading the page.'
@@ -16009,6 +16012,34 @@ function runBreakdown(r,back){
       ' · '+shortDate(r.when),
     tally:scoreTable(r),btn:'Back',go:function(){closeUI();back();},noClose:1});
 }
+/* Runs this browser remembers that the shared board does not have. Times on
+   the sheet can come back rounded, so a run within a second counts as there. */
+function runsNotShared(board){
+  var have={};
+  (board||[]).forEach(function(r){if(r&&r.when)have[Math.round(r.when/1000)]=1;});
+  return loadRecords().filter(function(r){
+    if(!r||!r.when)return false;
+    var k=Math.round(r.when/1000);
+    return !have[k]&&!have[k-1]&&!have[k+1];
+  });
+}
+var syncBusy=false,syncTried={};
+/* send them, one at a time; done(sent, failed, lastError) */
+function syncRunsUp(board,done){
+  if(syncBusy||typeof window==='undefined'||typeof window.DELVE_POST!=='function'){if(done)done(0,0,'');return;}
+  var miss=runsNotShared(board).filter(function(r){return !syncTried[r.when];});
+  if(!miss.length){if(done)done(0,0,'');return;}
+  syncBusy=true;
+  var sent=0,failed=0,lastErr='';
+  (function next(i){
+    if(i>=miss.length){syncBusy=false;if(done)done(sent,failed,lastErr);return;}
+    syncTried[miss[i].when]=1;
+    window.DELVE_POST(miss[i],function(ok,err){
+      if(ok)sent++;else{failed++;lastErr=err||lastErr;}
+      next(i+1);
+    });
+  })(0);
+}
 var recTab='all',recCache=null;
 function recordScreen(tab){
   if(tab)recTab=tab;
@@ -16093,8 +16124,21 @@ function recordScreen(tab){
     if(!got){draw(recCache?mergeRuns(mine,recCache):mine,recCache?'Could not reach the shared board just now — showing what it said last time.':'Could not reach the shared board — this is what this browser remembers.');return;}
     recCache=got;
     var y=$('veil').scrollTop;
-    draw(mergeRuns(mine,got),'Everybody who has played, and everything this browser remembers.');
+    var miss=runsNotShared(got).length;
+    draw(mergeRuns(mine,got),miss?'Everybody who has played. '+miss+' run'+(miss===1?'':'s')+' from this browser had not reached the shared board \u2014 sending '+(miss===1?'it':'them')+' now\u2026'
+      :'Everybody who has played, and everything this browser remembers.');
     $('veil').scrollTop=y;
+    if(!miss)return;
+    syncTried={};                                 /* opening the record is a fresh try */
+    syncRunsUp(got,function(sent,failed,err){
+      if(!ui||ui.title!=='The record')return;
+      if(!sent&&!failed)return;                   /* another send is already under way */
+      var y2=$('veil').scrollTop;
+      draw(mergeRuns(loadRecords(),got),failed
+        ?failed+' run'+(failed===1?'':'s')+' from this browser could not be sent to the shared board'+(err?' ('+err+')':'')+'. Open the record again to retry.'
+        :sent+' run'+(sent===1?'':'s')+' from this browser that had never reached the shared board '+(sent===1?'is':'are')+' on it now.');
+      $('veil').scrollTop=y2;
+    });
   });
 }
 
@@ -20100,19 +20144,25 @@ titleScreen();
 
   /* Delve calls this itself whenever a run is written down — dying, coming
      back up, or putting a name on one that already ended. */
-  window.DELVE_POST = function(run){
+  window.DELVE_POST = function(run, done){
+    var fail = function(msg){
+      /* No network, or the sheet said no. The run is still in this browser's
+         own record, and the next time the board is opened it is sent again. */
+      try{ localStorage.setItem('delve.postErr', JSON.stringify({when:Date.now(), msg:String(msg||'').slice(0,200)})); }catch(e){}
+      if(window.console) console.warn('Delve: the board did not take that run.', msg);
+      if(done) done(false, String(msg||''));
+    };
     try{
       google.script.run
         .withSuccessHandler(function(res){
+          if(res && res.ok === false){ fail(res.error || 'the sheet said no'); return; }
           if(res && res.board) window.DELVE_LAST_BOARD = res.board;
+          try{ localStorage.removeItem('delve.postErr'); }catch(e){}
+          if(done) done(true);
         })
-        .withFailureHandler(function(err){
-          /* No network, or the sheet said no. The run is already in this
-             browser's own record, so nothing is lost — it just is not shared. */
-          if(window.console) console.warn('Delve: the board did not take that run.', err);
-        })
+        .withFailureHandler(function(err){ fail((err && err.message) || err); })
         .submitRun(run);
-    }catch(e){}
+    }catch(e){ fail(e && e.message || e); }
   };
 
   /* ─────────── saves that outlive this browser ───────────
@@ -20200,6 +20250,17 @@ titleScreen();
       r[method].apply(r, args || []);
     }catch(e){ done({ok:false, error:String(e)}); }
   };
+  /* Any run this browser remembers that never reached the shared board (the
+     send failed, the page closed too soon, an older version had no board) goes
+     up now. The board is matched on when each run ended, so nothing doubles. */
+  setTimeout(function(){
+    try{
+      window.DELVE_FETCH_BOARD(function(got){
+        if(got && typeof syncRunsUp === 'function') syncRunsUp(got);
+      });
+    }catch(e){}
+  }, 2500);
+
   /* and stay signed in: the token this browser kept is checked once, now */
   try{ if(typeof acctResume==='function') acctResume(); }catch(e){}
   /* a shared recording: the link carries ?replay=<id> */
