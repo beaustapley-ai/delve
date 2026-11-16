@@ -15764,8 +15764,12 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.26';
+var GAME_VERSION='0.26.1';
 var VERSIONS=[
+ {v:'0.26.1',d:'16 Nov 2026',n:[
+  'The record fetches every run on the shared board, by everybody, so each run\u2019s place is out of all of them \u2014 it used to stop at the top fifty, so lower-scoring runs (and whole players) went missing. It shows the top hundred in whatever order you sort by.',
+  'The record asks the shared board again each time you open it, so runs other people finish while you are playing turn up without reloading the page.'
+ ]},
  {v:'0.26',d:'16 Nov 2026',n:[
   'Prayer rebuilt. Your god is drawn fresh every run from six, and so is what it wants: two things it likes to see you do, one or two it will not abide, what it thinks of gifts, and a temper of its own. None of it is shown \u2014 altars carry lines cut by other delvers, scraps of other people\u2019s prayers turn up on the floor, and now and then you feel it watching when you do something it cares about. Everything you find out is kept on your character sheet.',
   'You ask for what you want, and it answers what it thinks you need. Whatever is killing you comes first. It can see your pack and the floor: it may name the poison flask you were about to drink, take a curse off something you never knew was cursed, show you the thing waiting on this floor and ward you against it, or leave food at your feet. Great asks (a level, more health, proofing, its own gift) are only ever granted to those it is well pleased with.',
@@ -15907,6 +15911,7 @@ var REC_COLS=[
  {k:'kills',n:'Slain'},{k:'turns',n:'Turns'},{k:'when',n:'When'},{k:'how',n:'Ended',str:1}
 ];
 var recSort={k:'score',dir:-1};
+var REC_SHOW=100;   /* rows drawn; the whole board is still fetched and ranked */
 function sortRuns(list){
   var C=REC_COLS.filter(function(c){return c.k===recSort.k;})[0]||REC_COLS[2];
   return list.slice().sort(function(a,b){
@@ -15932,7 +15937,10 @@ function boardRows(list,note,noCls){
   });
   rows+='</tr>';
   list=sortRuns(list);
-  list.slice(0,50).forEach(function(r,i){
+  /* every run is fetched so places and counts are right; only the first
+     REC_SHOW (in the current sort order) are drawn */
+  var total=list.length;
+  list.slice(0,REC_SHOW).forEach(function(r,i){
     rows+='<tr data-i="'+i+'" class="recRow'+(r.won?' won':'')+'" title="How this score adds up"><td>'+(byScore.indexOf(r)+1)+'</td>'+
       '<td>'+esc(r.player||'—')+'</td>'+
       '<td>'+esc(r.who||'—')+'</td><td><b>'+(r.score||0)+'</b></td>'+
@@ -15942,6 +15950,8 @@ function boardRows(list,note,noCls){
       '<td>'+esc(r.won?'✦ '+(r.how||''):(r.how||''))+'</td></tr>';
   });
   rows+='</table>';
+  if(total>REC_SHOW)rows+='<p class="legendNote">Showing the first '+REC_SHOW+' of '+total+
+    ' runs in this order. Sort by another heading (Player, When\u2026) to see the rest; the # is still each run\u2019s place out of all '+total+'.</p>';
   if(note)rows+='<p class="legendNote">'+esc(note)+'</p>';
   return rows;
 }
@@ -15949,10 +15959,12 @@ function boardRows(list,note,noCls){
    one of them scored by today's rules, wherever it came from */
 function mergeRuns(mine,theirs){
   var out=mine.slice(),seen={};
-  out.forEach(function(r){seen[r.when]=1;});
+  out.forEach(function(r){if(r.when)seen[r.when]=1;});
   (theirs||[]).forEach(function(r){
-    if(!r||seen[r.when])return;
-    seen[r.when]=1;out.push(r);
+    if(!r)return;
+    if(r.when&&seen[r.when])return;
+    if(r.when)seen[r.when]=1;
+    out.push(r);
   });
   out.forEach(function(r){r.score=scoreOf(r);});
   out.sort(function(a,b){return (b.score||0)-(a.score||0);});
@@ -16068,18 +16080,21 @@ function recordScreen(tab){
   };
   modal({title:'The record',mark:'#C89A50',
     flavor:'Every run, yours and everybody else’s. The names are the only part anybody types.'+
-      (hosted&&!recCache?'\n\nAsking the shared board for the rest…':''),
+      (hosted?'\n\n'+(recCache?'Checking the shared board for anything new…':'Asking the shared board for the rest…'):''),
     btn:'Back',go:function(){closeUI();titleScreen();},noClose:1});
   $('veilFlavor').style.whiteSpace='pre-line';
   draw(list,hosted?(recCache?'Everybody who has played, and everything this browser remembers.':''):'Kept in this browser.');
-  if(!hosted||recCache)return;
-  /* and then the rest of it, whenever it turns up */
+  if(!hosted)return;
+  /* and then the whole shared board, fresh, whenever it turns up — every time
+     the record opens, so nobody's runs are ever missing or out of date */
   window.DELVE_FETCH_BOARD(function(got){
     if(!ui||ui.title!=='The record')return;      /* they have moved on */
     $('veilFlavor').textContent='Every run, yours and everybody else’s. The names are the only part anybody types.';
-    if(!got){draw(mine,'Could not reach the shared board — this is what this browser remembers.');return;}
+    if(!got){draw(recCache?mergeRuns(mine,recCache):mine,recCache?'Could not reach the shared board just now — showing what it said last time.':'Could not reach the shared board — this is what this browser remembers.');return;}
     recCache=got;
+    var y=$('veil').scrollTop;
     draw(mergeRuns(mine,got),'Everybody who has played, and everything this browser remembers.');
+    $('veil').scrollTop=y;
   });
 }
 
@@ -20156,13 +20171,24 @@ titleScreen();
   };
 
   /* And this is what puts "The shared board." on the title screen. */
+  /* Every run on the board, by everybody — allRuns (Api.gs) has no cap. If the
+     back end has not been updated yet, the older topRuns is asked instead. */
   window.DELVE_FETCH_BOARD = function(done){
+    var old = function(){
+      try{
+        google.script.run
+          .withSuccessHandler(function(list){ done(list || []); })
+          .withFailureHandler(function(){ done(null); })
+          .topRuns();
+      }catch(e){ done(null); }
+    };
     try{
-      google.script.run
+      var r = google.script.run
         .withSuccessHandler(function(list){ done(list || []); })
-        .withFailureHandler(function(){ done(null); })
-        .topRuns();
-    }catch(e){ done(null); }
+        .withFailureHandler(function(){ old(); });
+      if(typeof r.allRuns !== 'function'){ old(); return; }
+      r.allRuns();
+    }catch(e){ old(); }
   };
 
   /* accounts: one door for all of it — sign in, sign up, keys, resets */
