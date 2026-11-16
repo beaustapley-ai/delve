@@ -1085,7 +1085,13 @@ var MONS=[
  {g:'ģ',n:'a counted goblin',c:'#A294DC',hp:56,at:22,df:6,xp:106,b:4,w:4,pack:1,ranged:1,rng:7},
  {g:'Ń',n:'a nameless brute',c:'#8878C0',hp:130,at:27,df:12,xp:180,b:4,w:3,big:1,grabs:1,minD:22},
  {g:'Č',n:'a demon of the count',c:'#DCCCFF',hp:112,at:29,df:10,xp:210,b:4,w:2,curse:1,burn:1,summon:1,drain:1,minD:23},
- {g:'Š',n:'a reading that will not stop',c:'#E8E0FF',hp:84,at:26,df:8,xp:150,b:4,w:3,mind:1,drain:1,ranged:1,rng:8,minD:21}
+ {g:'Š',n:'a reading that will not stop',c:'#E8E0FF',hp:84,at:26,df:8,xp:150,b:4,w:3,mind:1,drain:1,ranged:1,rng:8,minD:21},
+/* v0.26 — things that feed on focus, not blood. Appended: kept by number in saves. */
+ {g:'ĕ',n:'a wick-eater',c:'#D8C070',hp:14,at:5,df:1,xp:12,b:0,w:3,sap:1,minD:3,nohands:1},
+ {g:'ĭ',n:'a thought-leech',c:'#86B8B0',hp:24,at:10,df:2,xp:28,b:1,w:3,sap:1,nohands:1,minD:6},
+ {g:'ŏ',n:'a hush-sister',c:'#B87A8A',hp:36,at:14,df:4,xp:44,b:2,w:3,sap:1,ranged:1,rng:7,seeInv:1,minD:11},
+ {g:'ŭ',n:'a pale mothkin',c:'#B8C890',hp:44,at:18,df:5,xp:62,b:3,w:3,sap:1,fast:1,nohands:1,minD:16},
+ {g:'ă',n:'an unmaker of words',c:'#C8B8F0',hp:70,at:23,df:7,xp:120,b:4,w:3,sap:1,ranged:1,rng:8,seeInv:1,minD:21}
 ];
 
 
@@ -1290,7 +1296,9 @@ var WANDS=[
  {id:'wardw', n:'a wand of warding',   sp:'ward',   lo:2,hi:5},
  {id:'routw', n:'a wand of terror',sp:'terror', lo:1,hi:4},
  {id:'seamw', n:'a wand of hidden doors',  sp:'unseal', lo:1,hi:3},
- {id:'breakw',n:'a wand of stone-breaking',sp:'shatter',lo:2,hi:4}
+ {id:'breakw',n:'a wand of stone-breaking',sp:'shatter',lo:2,hi:4},
+ {id:'rimew', n:'a wand of rime',          sp:'rime',   lo:3,hi:7},
+ {id:'venomw',n:'a wand of venom',         sp:'venom',  lo:3,hi:7}
 ];
 var WAND_LOOKS=['ash','bone','iron-shod','glass','knotted','pale','burnt','river-worn',
  'wound with wire','split and bound','black','oily'];
@@ -1431,7 +1439,7 @@ var PLAIN={
   unseal:'shows every hidden door and every trap on the floor, and what each trap does',
   cleanse:'cures bleeding, poison, fire and curse',
   terror:'everything within 7 paces runs from you for 14 turns (not bosses)',
-  key:'opens one locked door or chest next to you (not a warded chest)',
+  key:'opens one locked door, chest, sealed gate or stairwell grate next to you (not a warded chest)',
   name:'identifies one thing you carry',reading:'identifies everything you carry',
   shatter:'breaks a line of ordinary stone up to 9 long',
   thorn:'a bolt through everything in a line that makes it bleed: 12, +2 a level',
@@ -1440,7 +1448,15 @@ var PLAIN={
   haste:'for 22 turns, about half your steps cost no turn',
   feed:'fills your food and water',sight:'tells you how many creatures are alive on this floor \u2014 not where they are',
   lift:'removes the curse from what you are wearing',wellspring:'fills your FP',
-  rout:'hits everything you can see for 10, +2 a level'}
+  rout:'hits everything you can see for 10, +2 a level',
+  rime:'a bolt: 8, +1.5 a level, and it slows what it hits for about 6 turns (it acts every other turn)',
+  venom:'a bolt: 6, +1 a level, and poisons what it hits for 10 turns (2 a turn)',
+  kindle:'a bolt: 6, +1 a level, and sets what it hits burning for 9 turns',
+  rend:'everything beside you takes 6 (+1 a level) and bleeds for 8 turns',
+  sleet:'everything within 3 paces you can see takes a little and is slowed for 5 turns',
+  miasma:'a cloud where it lands: everything in the 3\u00d73 there is poisoned for 9 turns',
+  sap:'a bolt that weakens what it hits: its blows land about a third softer for 10 turns',
+  arc:'a bolt: 10, +2 a level, that jumps to the nearest other thing within 3 paces'}
 };
 function plainOf(kind,id){return (PLAIN[kind]&&PLAIN[kind][id])||'';}
 var R_LOOKS=['tarnished','woven','bone','warm','pitted','thin','heavy','green','dull','braided','cold',
@@ -1504,7 +1520,7 @@ var SPELLS=[
  {id:'unseal',n:'find hidden doors',t:'reveals every hidden way',unbind:1,fp:5},
  {id:'cleanse',n:'cleanse',t:'lifts poison, bleeding and curse',fp:4},
  {id:'terror',n:'terrify',t:'drives back everything that can hear',fp:5},
- {id:'key',n:'unlock',t:'opens one locked thing',unbind:1,fp:4},
+ {id:'key',n:'unlock',t:'opens one locked thing \u2014 a door, a chest, a sealed gate, or the grate over a stair',unbind:1,fp:4},
  {id:'name',n:'identify',t:'names one thing you carry',pick:1,fp:2},
  {id:'reading',n:'identify everything',t:'names everything you carry',fp:4},
  {id:'shatter',n:'break stone',t:'blows a hole through stone in a line',aim:1,unbind:1,fp:5},
@@ -1516,14 +1532,24 @@ var SPELLS=[
  {id:'sight',n:'sense life',t:'counts what is alive on this floor',fp:3},
  {id:'lift',n:'lift curse',t:'takes a curse off what you are wearing',fp:6},
  {id:'wellspring',n:'restore focus',t:'fills your FP back up',fp:0},
- {id:'rout',n:'shockwave',t:'hurts everything you can see',fp:7}
+ {id:'rout',n:'shockwave',t:'hurts everything you can see',fp:7},
+ /* v0.26 — appended, never reordered: workings are filed by number in saves */
+ {id:'rime',n:'rime bolt',t:'chills what it hits, and slows it',aim:1,fp:3},
+ {id:'venom',n:'venom bolt',t:'poisons what it hits',aim:1,fp:3},
+ {id:'kindle',n:'kindle',t:'sets what it hits alight',aim:1,fp:4},
+ {id:'rend',n:'rend',t:'opens wounds in everything beside you',fp:4},
+ {id:'sleet',n:'sleet',t:'slows everything close to you, and stings it',fp:5},
+ {id:'miasma',n:'miasma',t:'breaks a cloud of poison where it lands',aim:1,fp:6},
+ {id:'sap',n:'sap strength',t:'takes the strength out of what it hits',aim:1,fp:3},
+ {id:'arc',n:'arc spark',t:'a spark that jumps on to the next thing',aim:1,fp:4}
 ];
 
 /* the covers a working copy comes in — cosmetic, but a book is a book */
 var BOOK_LOOKS=['a grey-bound','a pinned','a waxed','a stitched','a plain','a charred',
  'a water-stained','a heavy','a thin','a brass-cornered','a rope-bound','a split-spine',
  'a tallow-spotted','a hide-wrapped','a nailed','a lead-backed','a sooted','a soft-covered',
- 'a wire-sewn','a warped','a slate-grey','a rain-swollen','a twine-tied'];
+ 'a wire-sewn','a warped','a slate-grey','a rain-swollen','a twine-tied',
+ 'a vellum','a gilt-edged','a mould-spotted','a cord-wrapped','a scorched','an oilskin','a bone-clasped','a salt-crusted','a wax-sealed','a ribboned'];
 
 /* What a working is called before you know what it does. Titles, not effects —
    the sort of thing somebody wrote on a page they did not expect you to read. */
@@ -1534,7 +1560,9 @@ var SCROLL_LOOKS=[
  'a hand that slants','the bricklayer’s prayer','what was said at the turn',
  'the borrowed breath','an account of the noise','the shorter way','a page torn in half',
  'the name of the fourth','the closing argument','what the water said','a line of salt',
- 'the last of the light','the given hour','an order, unsigned'];
+ 'the last of the light','the given hour','an order, unsigned',
+ 'the cold psalm','a recipe for green','what the wick said','a list of wounds','the drawn breath',
+ 'a fair copy','the rope-maker\u2019s count','the cinder catechism'];
 
 /* ═══════════════ what you can eat and drink ═══════════════
 
@@ -1882,15 +1910,24 @@ var GIFT_READS=[
 /* ═══════════════ gods ═══════════════ */
 
 var GODS=[
- {id:'count',n:'the Keeper of Count',likes:'steady going and nothing wasted',
-  boon:function(){P.maxHp+=6;P.hp=P.maxHp;say('You are counted, and the count is generous.','good');},
+ {id:'count',n:'the Keeper of Count',about:'the tally of everything that went down the stair, and how it ends',likes:'',
+  boon:function(){P.maxHp+=8;P.hp=P.maxHp;say('You are counted, and the count is generous. +8 maximum health.','good');},
   wrath:function(){afflict('curse',40);say('You are counted, and found uneven.','hit');}},
- {id:'rule',n:'the Old Rule',likes:'killing, and moving while you do it',
-  boon:function(){P.atk+=2;P.hp=Math.min(P.maxHp,P.hp+18);say('What is hungry moves. You are permitted to move.','good');},
+ {id:'rule',n:'the Old Rule',about:'what is hungry, and moves',likes:'',
+  boon:function(){P.atk+=2;P.hp=Math.min(P.maxHp,P.hp+18);say('What is hungry moves. You are permitted to move. +2 attack.','good');},
   wrath:function(){afflict('bleed',16);say('What is hungry moves. You were standing still.','hit');}},
- {id:'choir',n:'the Drowned Choir',likes:'being badly hurt and asking anyway',
-  boon:function(){cureAll();P.hp=P.maxHp;say('You are held, briefly, and put back down whole.','good');},
-  wrath:function(){P.hp=Math.max(1,Math.floor(P.hp*0.6));say('The water does not distinguish a plea from a noise.','hit');}}
+ {id:'choir',n:'the Drowned Choir',about:'the ones who went under singing, and still are',likes:'',
+  boon:function(){cureAll();P.hp=P.maxHp;P.focMax+=2;P.foc=P.focMax;say('You are held, briefly, and put back down whole. +2 maximum FP.','good');},
+  wrath:function(){P.hp=Math.max(1,Math.floor(P.hp*0.6));say('The water does not distinguish a plea from a noise.','hit');}},
+ {id:'lamp',n:'the Lamp Left Burning',about:'a light somebody left for whoever was still coming down',likes:'',
+  boon:function(){P.sightExtra=(P.sightExtra||0)+1;revealFloor();say('The dark gives a pace back to you, for good, and the floor is lit for you.','good');},
+  wrath:function(){afflict('blind',14);say('The lamp is turned away from you.','hit');}},
+ {id:'knot',n:'the Mother of Knots',about:'what holds, and what is held, and the rope between',likes:'',
+  boon:function(){P.def+=2;say('Something is tied round you and pulled tight. +2 defence, for good.','good');},
+  wrath:function(){afflict('held',4);say('A knot you cannot see is pulled tight around your legs.','hit');}},
+ {id:'ash',n:'the Ash Saint',about:'what is left once the burning is done',likes:'',
+  boon:function(){if(!grantResist('burn','The Ash Saint')){P.maxHp+=6;P.hp+=6;say('+6 maximum health.','good');}},
+  wrath:function(){afflict('burn',10);say('The Saint remembers what you are made of: kindling.','hit');}}
 ];
 
 /* ═══════════════ NPCs & dialogue ═══════════════
@@ -2642,7 +2679,7 @@ var CLASSES=[
   {n:'Absolution',br:1,lv:3,req:'Greater Mend',t:'Poison and bleeding run out twice as fast.',ap:function(){P.clean=true;}},
   {n:'Last Rites',br:1,lv:5,req:'Absolution',t:'Kills heal you 2, and 1 more for every four floors down.',ap:function(){P.lifesteal+=2;P.sk.rites=1;}},
   {n:'Consecrate',br:1,lv:7,req:'Last Rites',t:'An altar closes your wounds while you stand on it \u2014 once a floor, and then it is spent.',ap:function(){P.sk.altar=1;}},
-  {n:'Litany',br:2,lv:1,t:'Everything you ask for in prayer costs a quarter less favour, and the wait between prayers is shorter.',ap:function(){P.sk.pray=25;}},
+  {n:'Litany',br:2,lv:1,t:'Your god is ready to hear you again a quarter sooner after it answers.',ap:function(){P.sk.pray=25;}},
   {n:'Unbinding',br:2,lv:3,req:'Litany',t:'Curses settle on you half as often, and a hold on your gear can always be worked off.',ap:function(){P.sk.unbind=1;}},
   {n:'Founder\u2019s Hand',br:2,lv:5,req:'Unbinding',t:'You mend metal, at a rest, and it comes back blessed one time in four.',ap:function(){P.sk.mend='metal';P.sk.mendBless=1;}},
   {n:'Weight of Office',br:2,lv:7,req:'Founder\u2019s Hand',t:'+15% maximum health (at least 18), healed the same.',ap:function(){hpPct(0.15,18);}}]},
@@ -3635,7 +3672,7 @@ function itemName(rec){
       if(S.plain||known['f'+rec.i])return S.n;
       return (fLook[rec.i]||'an unmarked')+(supplyKind(S)==='drink'?' flask':' parcel');
     }
-    case 'page':return rec.rh!==undefined?'a note about a riddle':(LORE[rec.i]?LORE[rec.i].t:'a page');
+    case 'page':return rec.gc?'a scrap of somebody\u2019s prayer':(rec.rh!==undefined?'a note about a riddle':(LORE[rec.i]?LORE[rec.i].t:'a page'));
     case 'snare':return TRAPS[rec.k].n+', lifted whole';
     case 'chart':{
       var span=(rec.from===rec.to)?('floor '+rec.from)
@@ -4115,7 +4152,7 @@ function monPart(M){
   if(M.big)return 'brute';
   if(M.summon)return 'leader';
   if(M.invis||M.ghost)return 'ghost';
-  if((M.mind||M.curse||M.drain)&&!M.nohands)return 'caster';
+  if((M.mind||M.curse||M.drain||M.sap)&&!M.nohands)return 'caster';
   if(M.ranged)return 'ranged';
   if(M.nohands&&M.poison)return 'spider';
   if(M.nohands&&(M.pack||M.fast||M.roam)&&M.hp>12)return 'beast';
@@ -4474,11 +4511,8 @@ function genLevel(d){
     loot.push(ch);
   }
 
-  // riddle gate
-  if(d>1&&chance(70)){
-    var gs=spot(1,1);
-    if(gs){map[gs.y][gs.x]=T_GATE;gates.push({x:gs.x,y:gs.y,r:riddleFor(d)});}
-  }
+  // riddle gate — only ever across the one way into a side room
+  if(d>1&&chance(70))placeRiddleGate(d);
 
   // ritual sigil
   if(!P.rituals[RITUALS[bd].id]&&bandPos>=2&&bandPos<=4&&chance(62)){
@@ -4614,6 +4648,7 @@ function genLevel(d){
   digSites(d);
   shapeFloor(d);
   peopleFloor(d);
+  floorExtras26(d);
 }
 /* ═══════════════ dig sites ═══════════════
    Somewhere the rock is hollow, and the wall in front of it is cracked so you
@@ -5349,6 +5384,8 @@ function makeMon(mi,x,y,d){
     atk:Math.round(m.at*sa),def:m.df+Math.floor(d/5.5),xp:Math.round(m.xp*s),awake:0};
   /* some of them are on their rounds rather than sitting where they were put */
   if(!m.roam&&chance(d<=3?18:28))o.patrol=1;
+  /* the deeper, the more of them see what is hidden */
+  if(chance(seeInvOdds(d)))o.seeInv=1;
   /* below the tenth floor they start fighting properly */
   if(d>=10){
     o.smart=1;
@@ -5905,6 +5942,9 @@ function makeStock(d,kind){
   if(d<=12){
     var pr=premiumItem(d+10);pr.price=premiumPrice(pr,d);pr.prem=1;s.push(pr);
   }
+  /* bindings are not rare to buy: a scrivener always has one, others often */
+  var nb=kind==='paper'?(1+(chance(40)?1:0)):((kind==='relic'&&chance(35))||(kind==='general'&&chance(25))?1:0);
+  for(var bi=0;bi<nb;bi++){var bk={t:'book',i:bookSpell(d)};bk.price=priceOf(bk,d);s.push(bk);}
   /* a scrivener always has at least one way to name a thing */
   if(kind==='paper'){
     var ni=SPELLS.map(function(x){return x.id;}).indexOf('name');
@@ -6109,6 +6149,7 @@ function fxLoop(t){
   var k=fxKind();
   if(k!==FX.kind){FX.kind=k;FX.ps=[];FX.seed=1;}
   g.clearRect(0,0,W,H);
+  try{drawMonAuras(g,W,H,t);drawCombatFx(g,W,H,t);}catch(e){}
   var K=FX_KINDS[k];if(!K||!W||!H)return;
   var want=Math.round(K.n*Math.min(1.6,(W*H)/(700*450)));
   var cols=(K.themeCol&&floorTheme)?floorTheme.col:K.col;
@@ -6587,6 +6628,8 @@ function enterLevel(d,how,idx){
   runStats().fl[d]=1;
   stashLevel();
   var fresh=!levels[d];
+  if(how==='down'&&fresh&&d>1&&P.floorIn!==undefined&&turns-P.floorIn<230)godDeed('haste',1);
+  if(fresh){P.floorIn=turns;if(P.standing>40)P.standing=Math.round(40+(P.standing-40)*0.85);}
   depth=d;
   if(levels[d]){unpackLevel(levels[d]);if(walked)healReturning();}
   else{ups=[];downs=[];ev={n:0,fired:[]};genLevel(d);}
@@ -6870,7 +6913,7 @@ function afflict(kind,turnsN){
     poison:'Poison goes in. It will be a long while working through.',
     burn:'You are alight. It will keep burning until it runs out of you or you put it out.',
     curse:'Something settles on you that does not like you. '+
-          'Your guard is worse, what heals you heals less, and prayer costs half again.'
+          'Your guard is worse, what heals you heals less, and your god hears you less kindly.'
   }[kind],'hit');
 }
 /* how much a curse spoils anything that would mend you */
@@ -7000,6 +7043,7 @@ function hurt(d,src){
   if(P.hp<=0&&P.sk&&P.sk.cheat&&P.cheatF!==depth){P.cheatF=depth;P.hp=1;
     say('That should have been the end of you. It was not. You are still too stupid to lie down.','good');}
   if(P.hp<=0)return die(src);
+  if(P.hp<P.maxHp*0.3&&(turns-(P.painT||-99))>=25){P.painT=turns;godDeed('pain',1);}
   lowCheck(src,d);
 }
 /* ═══════════════ low health ═══════════════
@@ -7226,7 +7270,10 @@ function slay(m){
 
   gainXp(m.xp);
   /* the god notices what you put down, and the Old Rule notices it twice */
-  addFavour((m.boss?15:(m.mini||m.elite?5:1))*(P.god==='rule'?2:1)+(P.sk.devout?1:0),'kill');
+  /* what the god saw you do */
+  var killHow=(FLY_KIND==='arrow'||FLY_KIND==='throw')?'distance':(FLY_KIND==='spell'?'working':
+    ((Math.abs(m.x-P.x)<=1&&Math.abs(m.y-P.y)<=1)?'blood':''));
+  if(killHow&&killHow!=='working')godDeed(killHow,m.boss?3:(m.mini||m.elite?2:1));
   void finFell;
 }
 
@@ -7268,7 +7315,7 @@ function monAttack(m){
   }
   /* some of what is swung at you finds nothing there */
   if(P.sk.dodge&&chance(P.sk.dodge*100)){say(cap(K.n)+' swings at where you were.','good');return;}
-  var d=blunt(Math.round(m.atk*rallyBonus(m))+roll(4));
+  var d=blunt(Math.round(m.atk*rallyBonus(m)*(m.weakT>0?0.65:1))+roll(4));
   if(P.sk.reflect&&P.braced){var rf=P.sk.reflect+Math.floor(depth/3);m.hp-=rf;m.bled=1;say('It breaks itself on your guard for '+rf+'.','good');
     if(m.hp<=0){slay(m);return;}}
   /* You cannot name a thing you cannot see, and you cannot say where it is.
@@ -7286,6 +7333,11 @@ function monAttack(m){
     if(!P.sk.unbroken||P.holdHits>=3){P.holding=0;P.braced=0;P.braceT=0;P.holdHits=0;
       say('Something gets past the spear. The hold is broken.','warn');}
     else say('Something gets past the spear, and you hold anyway.','warn');}
+  /* some of what is down here feeds on focus, not blood */
+  if(K.sap){var dr=Math.min(P.foc,2+Math.floor(depth/4)+rnd(3));
+    if(dr>0){P.foc-=dr;d=Math.max(1,Math.round(d*0.35));
+      say(cap(K.n)+' drinks at your focus. \u2212'+dr+' FP'+(P.foc?'':' \u2014 there is none left')+'.','hit');}
+    else say(cap(K.n)+' finds no focus left in you to drink, and bites instead.','hit');}
   say(cap(K.n)+' hits you for '+d+'.','hit');
   hurt(d,K.n);
   if(over)return;
@@ -7320,7 +7372,12 @@ function monShoot(m){
   markAttacker(m,'range');
   var dist=Math.abs(m.x-P.x)+Math.abs(m.y-P.y);
   /* a shot finds the gaps a swing does not — it counts for less of your coat */
-  var d=blunt(Math.floor(m.atk*0.84)+roll(4),Math.round(defOf()*0.4));
+  var d=blunt(Math.floor(m.atk*0.84*(m.weakT>0?0.65:1))+roll(4),Math.round(defOf()*0.4));
+  shotFx(m.x,m.y,P.x,P.y,K.sap?'#88C8F0':(K.poison?'#8FD050':(K.bleed?'#E05050':(K.burn?'#FF8A3A':(K.curse?'#B090E8':'#D8D0C0')))),
+    (K.burn||K.curse||K.sap||K.mind)?'bolt':'arrow','mon');
+  if(K.sap){var dr2=Math.min(P.foc,2+Math.floor(depth/4)+rnd(3));
+    if(dr2>0){P.foc-=dr2;d=Math.max(1,Math.round(d*0.4));
+      say(cap(K.n)+' pulls at your focus from '+dist+' paces. \u2212'+dr2+' FP.','hit');}}
   var verb=K.poison?'spits at you':(K.bleed?'puts something through you':
     (K.burn?'throws fire at you':(K.curse?'says your name across the room':'shoots you')));
   say(cap(K.n)+' '+verb+' from '+dist+' paces — '+d+'.','hit');
@@ -7435,6 +7492,14 @@ function fly(dx,dy,dmg,verb,hold,pierce,rider){
 }
 var FLY_KIND='';
 function flyTo(tx,ty,dmg,verb,hold,pierce,rider){
+  FLY_TRACE={x0:P.x,y0:P.y,ex:P.x,ey:P.y,end:'none',hits:[]};
+  var r;try{r=flyTo0(tx,ty,dmg,verb,hold,pierce,rider);}
+  finally{var F=FLY_TRACE;
+    if(F&&(F.ex!==F.x0||F.ey!==F.y0||F.end==='wall'))
+      shotFx(F.x0,F.y0,F.end==='wall'?F.wx:F.ex,F.end==='wall'?F.wy:F.ey,shotColor(),FLY_KIND==='arrow'?'arrow':(FLY_KIND==='throw'?'throw':'bolt'),F.end,F.hits);}
+  return r;
+}
+function flyTo0(tx,ty,dmg,verb,hold,pierce,rider){
   var x0=P.x,y0=P.y;
   var ax=Math.abs(tx-x0),ay=Math.abs(ty-y0);
   var sx=x0<tx?1:-1,sy=y0<ty?1:-1,err=ax-ay;
@@ -7445,15 +7510,16 @@ function flyTo(tx,ty,dmg,verb,hold,pierce,rider){
     if(e2>-ay){err-=ay;x+=sx;}
     if(e2<ax){err+=ax;y+=sy;}
     if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1)break;
-    if(SOLID[map[y][x]]){if(!hits)say('It stops against the stone.','warn');break;}
+    if(SOLID[map[y][x]]){if(!hits)say('It stops against the stone.','warn');FLY_TRACE.end='wall';FLY_TRACE.wx=x;FLY_TRACE.wy=y;break;}
+    FLY_TRACE.ex=x;FLY_TRACE.ey=y;
     /* fire through a web or a curtain of growth burns it out of the way */
-    if(rider==='burn'&&(map[y][x]===T_WEB||map[y][x]===T_GROWTH)){say('It burns through the '+(map[y][x]===T_WEB?'web':'growth')+'.','good');map[y][x]=T_FLOOR;}
+    if((rider==='burn'||rider==='kindle')&&(map[y][x]===T_WEB||map[y][x]===T_GROWTH)){say('It burns through the '+(map[y][x]===T_WEB?'web':'growth')+'.','good');map[y][x]=T_FLOOR;}
     var m=mons.filter(function(e){return e.x===x&&e.y===y&&!e.watcher;})[0];
     /* what is under the water is under the water: a shot goes over it */
     if(m&&lurkHidden(m)){
       if(FLY_KIND)say('It goes into the '+lurkMedium(m)+' and finds nothing.','warn');
       return hits>0;}
-    if(m&&m.illusion){popIllusion(m);hits++;if(!pierce)return true;continue;}
+    if(m&&m.illusion){popIllusion(m);hits++;FLY_TRACE.hits.push({x:x,y:y});FLY_TRACE.end='mon';if(!pierce)return true;continue;}
     if(m){
       var d=Math.max(1,dmg-Math.floor(m.def/2));
       if(FLY_KIND==='arrow')d=Math.round(d*fightMul()*(1+(P.sk.shotMul||0)));
@@ -7462,7 +7528,7 @@ function flyTo(tx,ty,dmg,verb,hold,pierce,rider){
       if(m.marked>0){d+=8;m.marked--;}
       if(FLY_KIND==='arrow'&&P.sk.deadeye&&chance(17)){d*=2;say('Dead centre.','hit');}
       if(m.shield>0)d=shieldSoak(m,d);
-      m.hp-=d;m.awake=1;m.bled=1;hits++;
+      m.hp-=d;m.awake=1;m.bled=1;hits++;FLY_TRACE.hits.push({x:x,y:y});FLY_TRACE.end='mon';
       say(verb+' '+monKind(m).n+' for '+d+'.','hit');
       if(FLY_KIND==='arrow')useCount('bow',1);
       if(hold){m.held=hold;say(cap(monKind(m).n)+' stops moving.','good');}
@@ -7470,6 +7536,7 @@ function flyTo(tx,ty,dmg,verb,hold,pierce,rider){
       if(rider==='bleed'&&m.hp>0){monBleed(m,6);}
       if(FLY_KIND==='arrow'&&P.sk.broadhead&&m.hp>0&&chance(33)){monBleed(m,6);}
       if(rider==='burn'&&m.hp>0){monBurn(m,6);}
+      if(rider&&rider!=='burn'&&rider!=='bleed'&&m.hp>0)flyRider(m,rider);
       if(m.hp<=0)slay(m);
       var through=pierce||(FLY_KIND==='arrow'&&P.sk.pierceShot&&hits<2);
       if(!through)return true;
@@ -7648,6 +7715,7 @@ function doThrow(at,tx,ty){
     known['p'+rec.i]=1;
     var E=potEffect(rec.i);
     potState(rec);
+    shotFx(P.x,P.y,land.x,land.y,'#A8D0C8','throw',hit?'mon':'none');
     if(hit)splashPotion(E,hit,rec);
     else say('The flask goes past everything and breaks on the stone. '+
       cap(E.n)+', wasted.','warn');
@@ -7701,8 +7769,9 @@ function settleStone(){
   if(gone)say('The stone you raised settles back into the floor.','dim');
 }
 function castSpell(id,dx,dy){
-  FLY_KIND='spell';useCount('work',1);
-  try{return castSpell0(id,dx,dy);}finally{FLY_KIND='';}
+  FLY_KIND='spell';useCount('work',1);CUR_SPELL=id;
+  godDeed('working',1);
+  try{if(castNew(id,dx,dy))return;return castSpell0(id,dx,dy);}finally{FLY_KIND='';CUR_SPELL='';}
 }
 function castSpell0(id,dx,dy){
   switch(id){
@@ -7730,6 +7799,7 @@ function castSpell0(id,dx,dy){
     case 'key':{var c=loot.filter(function(l){return l.t==='chest'&&!l.opened&&l.lock!=='ward'&&Math.abs(l.x-P.x)+Math.abs(l.y-P.y)<=1;})[0]||
         P.carry.filter(function(l){return l.t==='chest'&&!l.opened&&l.lock!=='ward'&&l.lock!=='open';})[0];
       if(c){c.lock='open';say('The lock gives up.','good');break;}
+      if(unlockGateNear())break;
       /* a door beside you counts as a locked thing, ward and all */
       var dr=null;
       for(var ky=-1;ky<=1&&!dr;ky++)for(var kx=-1;kx<=1;kx++){
@@ -7742,10 +7812,13 @@ function castSpell0(id,dx,dy){
     case 'reading':return nameAll();
     case 'shatter':{
       var n2=0,hard2=0,sx=P.x,sy=P.y;
+      if(aimPoint){var ap=aimAt(aimPoint.x,aimPoint.y);dx=ap[0];dy=ap[1];}
       for(var i2=0;i2<9;i2++){
         sx+=dx;sy+=dy;
         if(sx<1||sy<1||sx>=MAP_W-1||sy>=MAP_H-1)break;
         if(unbreakable(sx,sy)){hard2++;break;}
+        if(map[sy][sx]===T_GATE){map[sy][sx]=T_FLOOR;n2++;gates=gates.filter(function(e){return !(e.x===sx&&e.y===sy);});
+          say('The gate comes apart with the stone.','good');continue;}
         if(map[sy][sx]===T_WALL||map[sy][sx]===T_HIDDEN||map[sy][sx]===T_LOCKED||map[sy][sx]===T_CRACK){map[sy][sx]=T_FLOOR;n2++;}
       }
       say(n2?'Stone comes apart in a line. '+n2+' of it.':'Nothing in the way to break.','deep');
@@ -8174,6 +8247,16 @@ function rollFavour(){
   var ks=shuffle(GIFT_KINDS.map(function(g){return g.k;}));
   return {good:[ks[0],ks[1]],bad:ks[2],read:GIFT_READS[rnd(GIFT_READS.length)].id,hits:0,misses:0};
 }
+function godTruth(){
+  if(!P||!P.favour||!P.favour.likes)return [];
+  var f=P.favour,nm=function(id){return DEEDS[id]?DEEDS[id].n:id;};
+  var s=P.standing||0;
+  return ['It liked: '+f.likes.map(nm).join(', and ')+'.',
+    'It would not abide: '+f.hates.map(nm).join(', or ')+'.',
+    'Its temper: '+(HUMOURS[f.humour]?HUMOURS[f.humour].n:f.humour)+'.',
+    'At the end it was '+(P.godAnger>0?'angry with you':(s<-35?'turned away from you':(s<-10?'cold to you':(s<10?'indifferent':(s<40?'watching you':'pleased with you')))))+'.',
+    'You had found out '+((P.godKnow||[]).length)+' thing'+(((P.godKnow||[]).length)===1?'':'s')+' about it.'];
+}
 function favourText(){
   var f=P.favour;if(!f)return 'Nothing was decided.';
   var nm=function(k){var g=GIFT_KINDS.filter(function(x){return x.k===k;})[0];return g?g.n:k;};
@@ -8210,46 +8293,316 @@ function giftHint(v){
   return 'this feels like a mistake';
 }
 
-/* ═══════════════ prayer ═══════════════
-   Prayer is not a dice roll any more. You build favour with your god — by
-   what you offer, by what you kill, by the rituals you take — and you spend
-   it on something you choose, at a price you can see. The god's tastes still
-   matter: what it likes is worth more to it, what it refuses is worth
-   nothing, and an altar under your knees makes everything cheaper. */
+
+/* ═══════════════ v0.26 — gods who keep their own counsel ═══════════════
+
+   Prayer is no longer a shop. Every run your god is drawn fresh, and so is
+   what it cares about: two things it likes to see you do, one or two it will
+   not abide, what it thinks of gifts, and a temper of its own. None of it is
+   shown. You learn it from what is cut into altars, from scraps of other
+   people's prayers, and from the moments it lets you feel it watching.
+
+   When you pray you ask for something — and it answers what it thinks you
+   need, which is not always what you asked for. It can see your pack, and
+   the floor, and what is coming. It is slow to be asked again, it does not
+   tell you how long, and it will not be mocked. */
+
+var DEEDS={
+ blood:{n:'killing up close',as:'As it falls at your feet',
+   like:['It came nearest when I killed with my own two hands.','The close kills were the ones it counted.','Get their blood on your sleeve, it seemed to say, and I will hear you.'],
+   hate:['It turned away from me every time I killed at arm’s length.','Do not let it watch you kill close. It does not forget that.','My hands were red and it would not hear me.']},
+ distance:{n:'killing from a distance',as:'As it falls, far off from you',
+   like:['It liked them dropped from far away, before they ever reached me.','Every arrow that found a throat, it counted.','Keep them at the end of a bowshot. That pleased it.'],
+   hate:['It despised a coward’s kill, shot from across a room.','Whatever I killed from far off, it held against me.','It will not hear an archer. I learned that late.']},
+ working:{n:'casting workings',as:'As the working leaves you',
+   like:['It leaned in every time I spoke a working.','Say the old words often. It listens for them.','It loved the workings. Every spell was a prayer to it.'],
+   hate:['It hated the workings. Every spell I spoke, it turned further from me.','Do not work spells where it can hear. It thinks them theft.','The words of a working are an insult to it.']},
+ haste:{n:'going down quickly',as:'As you go down so soon after coming in',
+   like:['It wanted me going down, always down, and quickly.','Do not linger on a floor. It likes you hurrying.','The faster I went down, the closer it came.'],
+   hate:['It does not like to be rushed past. Stay on a floor a while.','I ran down the stair and it would not hear me after.','Hurry, and it will not follow you.']},
+ patience:{n:'searching and resting',as:'As you take your time',
+   like:['It likes the slow ones. Search. Rest. Take your time.','I sat still and looked properly, and it liked me for it.','Patience. It rewards patience.'],
+   hate:['Idle hands make it angry. Searching, resting — it calls that waste.','It hated me sitting still.','Do not dawdle. It watches for that.']},
+ greed:{n:'gathering gold',as:'As the coin goes into your purse',
+   like:['It liked the gold. Every coin I picked up was a kind of offering.','Fill your purse. It likes a full purse.','It counted my coins with me, and smiled.'],
+   hate:['It despises the purse. Leave the gold where it lies.','Every coin I picked up, it held against me.','Greed. It hated my greed above everything.']},
+ thirst:{n:'drinking flasks',as:'As the flask goes down',
+   like:['It was pleased every time I drank something I did not know.','Drink what you find. It likes a reckless mouth.','Flasks. Drink them. It loves the gamble of it.'],
+   hate:['It hated the flasks. Every one I drank, it turned colder.','Do not drink what you find. It thinks it a weakness.','It will not hear a mouth that tastes of flasks.']},
+ pain:{n:'being badly hurt',as:'As the blood goes out of you',
+   like:['It came closest when I was closest to dying.','Bleed for it. It notices those who bleed.','When I was nearly gone, it was nearest.'],
+   hate:['It despises the careless. Every time I let myself get cut to pieces, it cooled.','Do not come to it broken. It has no love for the hurt.','It turned from me when I was bleeding out.']}
+};
+var DEED_IDS=['blood','distance','working','haste','patience','greed','thirst','pain'];
+var HUMOURS={
+ proud:{n:'proud',clue:['Never ask it for more than bread. It remembers who asked for the moon.','It hated being asked for much. Ask small, or ask it to choose.','Do not tell it what to give. It will give what it likes, or nothing.']},
+ generous:{n:'generous',clue:['When it was pleased with me it was free with its hands.','It gave more than I asked, every time I had done right by it.','It is open-handed, if you have pleased it.']},
+ fickle:{n:'fickle',clue:['It never once gave me what I asked for. It gave me what I needed, which I only saw later.','Ask it for one thing and it hands you another. Usually the right one.','It has its own mind about what you need.']},
+ stern:{n:'stern',clue:['It is slow to hear. Pray too often and it stops listening.','It made me wait a long time between asking. Longer than I thought.','Patient with nothing. Pray once, and then go a long while without.']},
+ merciful:{n:'merciful',clue:['It came every time I was dying, early or not.','It answers the dying first, and quickly.','When I was nearly gone it came, however soon I asked.']}
+};
+var HUMOUR_IDS=['proud','generous','fickle','stern','merciful'];
+var GOD_WARM=['something a long way off approves','you feel watched, and kindly','the dark around you is a little less heavy','you feel, briefly, counted in your own favour'];
+var GOD_COLD=['something a long way off turns its back','a cold settles between your shoulders','you feel watched, and not kindly','the dark seems to lean away from you'];
+
+function godOf(){return GODS.filter(function(x){return x.id===P.god;})[0]||GODS[0];}
+/* what it wants this run: rolled once, never shown, filled in on old saves */
+function godMind(){
+  var f=P.favour||(P.favour=rollFavour());
+  if(!f.likes){
+    var ds=shuffle(DEED_IDS.slice());
+    f.likes=[ds[0],ds[1]];f.hates=chance(55)?[ds[2],ds[3]]:[ds[2]];
+    f.humour=HUMOUR_IDS[rnd(HUMOUR_IDS.length)];
+  }
+  if(P.standing===undefined){P.standing=Math.min(40,Math.round((P.devotion||0)/3))+rnd(6);}
+  if(P.prayT===undefined)P.prayT=turns+120+rnd(160);
+  if(!P.godKnow)P.godKnow=[];
+  if(P.godAnger===undefined)P.godAnger=0;
+  return f;
+}
+function rollGod(c){
+  /* the god you were raised to is the likeliest, but not the only one */
+  var pool=GODS.map(function(g){return g.id;});
+  if(c&&c.god&&chance(35))return c.god;
+  return pool[rnd(pool.length)];
+}
+/* standing: hidden, from about -100 to 100 */
+function standingAdd(n){
+  godMind();
+  P.standing=clamp(Math.round((P.standing||0)+n),-100,100);
+  if(P.standing<-35&&n<0&&chance(30))P.godAnger=Math.min(6,(P.godAnger||0)+1);
+}
+/* the old favour calls still work — they move standing now, and less */
+function addFavour(n,why){
+  n=Math.round(n);if(n<=0)return;
+  if(why==='kill')return;                    /* killing counts only as a deed now */
+  var k=why==='ritual'?0.6:0.4;
+  standingAdd(n*k);
+}
+
+/* Something you did that the god cares about, one way or the other. A liked
+   deed adds to its regard and a hated one takes away; neither can be farmed,
+   because each counts for less the more you do it on one floor. */
+function godDeed(id,amt){
+  if(!P||over||!DEEDS[id])return;
+  var f=godMind();
+  var liked=f.likes.indexOf(id)>=0,hated=f.hates.indexOf(id)>=0;
+  if(!liked&&!hated)return;
+  amt=(amt||1)*(P.sk&&P.sk.devout?1.5:1);
+  P.deedF=P.deedF||{};
+  var key=depth+':'+id,had=P.deedF[key]||0;
+  P.deedF[key]=had+1;
+  var fall=had<2?1:(had<6?0.4:0);
+  if(hated)fall=had<4?1:(had<10?0.5:0.25);
+  if(fall>0)standingAdd((liked?1.3:-2.6)*amt*fall);
+  /* the moments it lets you feel it */
+  P.deedSign=P.deedSign||{};
+  var first=!P.deedSign[id];
+  if(chance(first?55:6)){
+    var D=DEEDS[id],warm=liked;
+    var feel=(warm?GOD_WARM:GOD_COLD)[rnd(4)];
+    say(D.as+', '+feel+'.','deep');
+    if(first){P.deedSign[id]=1;
+      godNote('felt:'+id,D.as+', you felt '+(warm?'something approve':'something turn away')+'.');}
+  }
+}
+/* the journal of what you have found out */
+function godNote(k,t){
+  godMind();
+  if(P.godKnow.some(function(q){return q.k===k;}))return false;
+  P.godKnow.push({k:k,t:t,d:depth});
+  return true;
+}
+/* one true thing about this run's god, preferring something not yet known */
+function godClue(){
+  var f=godMind(),g=godOf(),pool=[];
+  f.likes.forEach(function(id){pool.push({k:'like:'+id,t:DEEDS[id].like[rnd(DEEDS[id].like.length)],w:3});});
+  f.hates.forEach(function(id){pool.push({k:'hate:'+id,t:DEEDS[id].hate[rnd(DEEDS[id].hate.length)],w:3});});
+  var H=HUMOURS[f.humour];pool.push({k:'humour',t:H.clue[rnd(H.clue.length)],w:2});
+  var kn=function(k){var G=GIFT_KINDS.filter(function(x){return x.k===k;})[0];return G?G.n:k;};
+  f.good.forEach(function(k){pool.push({k:'gift+:'+k,t:'It took '+kn(k)+' gladly, when I laid it on an altar.',w:1});});
+  pool.push({k:'gift-:'+f.bad,t:'It would not have '+kn(f.bad)+'. It threw it back at my feet.',w:1});
+  var RD=GIFT_READS.filter(function(x){return x.id===f.read;})[0];
+  if(RD&&RD.id!=='none')pool.push({k:'read',t:'It '+RD.n+'.',w:1});
+  var have={};P.godKnow.forEach(function(q){have[q.k]=1;});
+  var fresh=pool.filter(function(q){return !have[q.k];});
+  var src=fresh.length?fresh:pool,bag=[];
+  src.forEach(function(q){for(var i=0;i<q.w;i++)bag.push(q);});
+  var c=bag[rnd(bag.length)];
+  return {k:c.k,t:c.t,fresh:!have[c.k],god:g};
+}
+/* a scrap of somebody else's prayer, picked up off the floor */
+function readGodClue(how){
+  var c=godClue();
+  if(how==='altar')say('Cut into the lip of the altar, in a hand that is not yours, a line about '+c.god.n+':','find');
+  else say('A scrap of somebody’s prayer to '+c.god.n+', folded small:','find');
+  say('“'+c.t+'”','lore');
+  if(godNote(c.k,c.t))say('You keep it in mind. (What you know of '+c.god.n+' is on your character sheet, and in prayer.)','room');
+  else say('You knew that already.','dim');
+}
+function altarClue(){
+  if(map[P.y][P.x]!==T_ALTAR)return;
+  P.altarRead=P.altarRead||{};
+  var k=depth+':'+P.x+':'+P.y;
+  if(P.altarRead[k])return;
+  P.altarRead[k]=1;
+  if(chance(70))readGodClue('altar');
+  else say('The altar is worn smooth. Nobody left a word on it.','dim');
+}
+function godKnowLines(){
+  godMind();
+  return P.godKnow.map(function(q){return q.k.indexOf('felt:')===0?q.t:'“'+q.t+'”';});
+}
+/* what the god will not show you: a feeling, and only at an altar */
+function godMood(){
+  var s=P.standing||0;
+  if(P.godAnger>0)return 'You feel it is angry with you.';
+  if(s<-35)return 'You feel it has turned its face from you.';
+  if(s<-10)return 'You feel it is cold towards you.';
+  if(s<10)return 'You feel nothing much from it either way.';
+  if(s<35)return 'You feel it is watching you.';
+  if(s<65)return 'You feel it is pleased with you.';
+  return 'You feel it is well pleased with you.';
+}
+function godWait(){
+  var left=(P.prayT||0)-turns;
+  if(left<=0)return 'It would hear you now.';
+  if(left<120)return 'It will be ready to hear you before long.';
+  return 'It is not ready to be asked.';
+}
+
+/* ---------- what is wrong with you, as the god sees it ---------- */
+function godTroubles(){
+  var maj=[],min=[];
+  var low=P.hp<Math.max(6,P.maxHp/7)||P.hp<P.maxHp*0.18;
+  if(low)maj.push('dying');
+  if(P.foodStage>=2||P.drinkStage>=2)maj.push('starving');
+  if((P.poison>0||P.bleed>0||P.burn>0)&&P.hp<P.maxHp*0.4)maj.push('working');
+  ['wep','arm','ring'].forEach(function(s){var r=P[s];if(r&&r.cursed&&curseOf(r)&&curseOf(r).which==='weld')maj.push('weld:'+s);});
+  var adj=mons.filter(function(m){return !m.watcher&&m.awake&&Math.abs(m.x-P.x)<=1&&Math.abs(m.y-P.y)<=1;}).length;
+  if(adj>=3&&P.hp<P.maxHp*0.5)maj.push('surrounded');
+  if(!low&&P.hp<P.maxHp*0.5)min.push('hurt');
+  if(P.poison>0||P.bleed>0||P.burn>0||P.curse>0)min.push('afflicted');
+  if(P.blind>0||P.muddle>0||P.slow>0)min.push('dazed');
+  if(P.foodStage>=1||P.drinkStage>=1)min.push('hungry');
+  if(P.focMax>=6&&P.foc<P.focMax*0.25)min.push('empty');
+  return {maj:maj,min:min};
+}
+function godFix(t){
+  switch(t.split(':')[0]){
+    case 'dying':{var h=P.maxHp-P.hp;P.hp=P.maxHp;return 'Your wounds close. +'+h+' health.';}
+    case 'starving':P.food=FOOD_MAX;P.drink=DRINK_MAX;P.foodStage=-1;P.drinkStage=-1;return 'You are fed and watered.';
+    case 'working':P.poison=0;P.bleed=0;P.burn=0;return 'What was working in you stops.';
+    case 'weld':{var r=P[t.split(':')[1]];if(r){r.cursed=null;r.c0=null;}return 'The hold on '+(r?itemName(r):'it')+' lets go.';}
+    case 'surrounded':{var n=0;mons.forEach(function(m){if(m.boss||m.watcher)return;
+      if(Math.abs(m.x-P.x)<=2&&Math.abs(m.y-P.y)<=2){m.flee=10;n++;}});P.held=0;return n+' of them back away from you.';}
+    case 'hurt':{var h2=Math.min(P.maxHp-P.hp,Math.round(P.maxHp*0.5));P.hp+=h2;return '+'+h2+' health.';}
+    case 'afflicted':cureAll();return 'What was working in you stops.';
+    case 'dazed':P.blind=0;P.muddle=0;P.slow=0;return 'Your head clears.';
+    case 'hungry':P.food=Math.max(P.food,FOOD_MAX*0.8);P.drink=Math.max(P.drink,DRINK_MAX*0.8);P.foodStage=-1;P.drinkStage=-1;return 'You are not hungry or thirsty.';
+    case 'empty':P.foc=P.focMax;return 'Your FP is full.';
+  }
+  return '';
+}
+
+/* ---------- what it knows that you do not ---------- */
+function godInsights(){
+  var out=[];
+  /* a flask in your pack that would hurt you, or one that would save you */
+  P.carry.forEach(function(c){
+    if(c.t!=='potion'||known['p'+c.i])return;
+    var E=potEffect(c.i);
+    if(!E.good)out.push({w:6,go:function(){known['p'+c.i]=1;
+      return 'It shows you the '+pLook[c.i]+' flask in your pack for what it is: '+E.n+'. It '+E.t+'. Do not drink it.';}});
+    else if((E.id==='mend'||E.id==='deep'||E.id==='double')&&P.hp<P.maxHp*0.6)out.push({w:5,go:function(){known['p'+c.i]=1;
+      return 'It turns your eye to the '+pLook[c.i]+' flask in your pack: '+E.n+'. You will want it.';}});
+  });
+  /* a curse on something you carry and have not found out */
+  [P.wep,P.off,P.arm,P.ring].concat(P.carry).forEach(function(r){
+    if(!r||!r.cursed||r.cx)return;
+    out.push({w:6,go:function(){var C=curseOf(r);r.cursed=null;r.c0=null;
+      return 'It takes a curse off '+itemName(r)+' that you never knew was there'+(C?' — it was '+C.n:'')+'.';}});
+  });
+  /* something on the floor you have not met, and should not meet unready */
+  var worst=null,ws=0;
+  mons.forEach(function(m){
+    if(m.watcher||canSeeMon(m))return;
+    var s=(m.xp||0)*(m.boss?4:(m.mini||m.elite||m.chief?2.5:1));
+    if(s>ws){ws=s;worst=m;}
+  });
+  if(worst&&(worst.boss||worst.mini||worst.elite||worst.chief||ws>=24+depth*3)){
+    out.push({w:5,go:function(){
+      worst.shown=40;if(seen[worst.y])seen[worst.y][worst.x]=true;
+      var wv=12+depth*2;P.ward=(P.ward||0)+wv;
+      return 'It shows you what is waiting on this floor: '+monKind(worst).n+', '+bearing(worst.x,worst.y)+
+        '. A ward settles over you against it (+'+wv+').';}});
+  }
+  /* what you will run short of before you notice */
+  var hasFood=P.carry.some(function(c){return c.t==='supply'&&SUPPLY[c.i]&&SUPPLY[c.i].food;});
+  var hasDrink=P.carry.some(function(c){return c.t==='supply'&&SUPPLY[c.i]&&SUPPLY[c.i].drink;});
+  if((P.food<FOOD_MAX*0.45&&!hasFood)||(P.drink<DRINK_MAX*0.45&&!hasDrink))
+    out.push({w:5,go:function(){var it=(!hasDrink&&P.drink<DRINK_MAX*0.45)?supplyOf(function(S){return S.drink&&S.drink>=(S.food||0);},depth):supplyOf(function(S){return S.food&&!(S.drink>=S.food);},depth);
+      var q=freeNear(P.x,P.y)||{x:P.x,y:P.y};it.x=q.x;it.y=q.y;loot.push(it);
+      return 'There is '+itemName(it)+' at your feet that was not there before. You will need it.';}});
+  if(usesBow()&&P.ammo<8)out.push({w:4,go:function(){var a=8+rnd(8);P.ammo+=a;return 'Your quiver is heavier. +'+a+' arrows.';}});
+  var hid=traps.filter(function(t){return !t.found&&!t.spent&&Math.abs(t.x-P.x)+Math.abs(t.y-P.y)<=14;});
+  if(hid.length)out.push({w:3,go:function(){hid.forEach(function(t){t.found=1;t.known=1;});
+    return 'It shows you '+hid.length+' trap'+(hid.length===1?'':'s')+' close by that you had not seen.';}});
+  if(downs.some(function(q){return !seen[q.y][q.x];}))out.push({w:2,go:function(){
+    downs.forEach(function(q){seen[q.y][q.x]=true;});return 'You know where the way down is.';}});
+  if(P.focMax>=8&&P.foc<P.focMax*0.5)out.push({w:3,go:function(){P.foc=P.focMax;return 'Your FP is full.';}});
+  if(!out.length&&P.hp<P.maxHp)out.push({w:1,go:function(){var h=Math.min(P.maxHp-P.hp,Math.round(P.maxHp*0.25));P.hp+=h;
+    return 'A little warmth. +'+h+' health.';}});
+  return out;
+}
+function godGiveInsight(n){
+  var list=godInsights(),said=[];
+  for(var i=0;i<(n||1)&&list.length;i++){
+    var bag=[];list.forEach(function(o,j){for(var k=0;k<o.w;k++)bag.push(j);});
+    var j=bag[rnd(bag.length)],o=list.splice(j,1)[0];
+    said.push(o.go());
+  }
+  return said.join(' ');
+}
+
+/* ---------- what you can ask for ---------- */
 var PRAYERS=[
- {id:'mend',n:'Mend me',t:'heal half your health',cost:18,go:function(){
-   var h=Math.min(P.maxHp-P.hp,Math.round(P.maxHp*0.5*healFactor()));P.hp+=h;return '+'+h+' health.';}},
- {id:'clean',n:'Cleanse me',t:'end bleeding, poison, fire, curse, muddle, blindness and slowness',cost:14,go:function(){
+ {id:'mend',n:'Mend me',t:'close your wounds',tier:1,need:function(){return P.hp<P.maxHp*0.75;},go:function(){
+   var h=Math.min(P.maxHp-P.hp,Math.round(P.maxHp*0.6*healFactor()));P.hp+=h;return '+'+h+' health.';}},
+ {id:'clean',n:'Cleanse me',t:'end what is working in you — bleeding, poison, fire, curse, muddle, blindness, slowness',tier:1,
+  need:function(){return P.bleed>0||P.poison>0||P.burn>0||P.curse>0||P.muddle>0||P.blind>0||P.slow>0;},go:function(){
    cureAll();P.curse=0;P.burn=0;P.muddle=0;P.blind=0;P.slow=0;P.hexDot={};var uf=uncurseFlasks();
    return 'Everything working in you stops.'+(uf?' '+uf+' cursed flask'+(uf===1?' is':'s are')+' clean again.':'');}},
- {id:'mind',n:'Fill my mind',t:'refill your FP',cost:18,go:function(){P.foc=P.focMax;return 'Your FP is full.';}},
- {id:'feed',n:'Feed me',t:'end hunger and thirst',cost:12,go:function(){
+ {id:'mind',n:'Fill my mind',t:'refill your FP',tier:1,need:function(){return P.foc<P.focMax*0.5;},go:function(){P.foc=P.focMax;return 'Your FP is full.';}},
+ {id:'feed',n:'Feed me',t:'end hunger and thirst',tier:1,need:function(){return P.food<FOOD_MAX*0.45||P.drink<DRINK_MAX*0.45;},go:function(){
    P.food=FOOD_MAX;P.drink=DRINK_MAX;P.foodStage=-1;P.drinkStage=-1;return 'You are fed and watered.';}},
- {id:'hide',n:'Hide me',t:'nothing can find you for 20 turns',cost:28,go:function(){
-   P.invis=(P.invis||0)+20;mons.forEach(function(m){if(m.awake){m.awake=0;m.lost=5;}});return 'Nothing can find you for 20 turns.';}},
- {id:'way',n:'Show me the way',t:'every way down on this floor is marked on your map',cost:22,go:function(){
+ {id:'hide',n:'Hide me',t:'be passed over for a while',tier:1,need:function(){return hunted()||mons.some(function(m){return m.awake&&!m.watcher&&Math.abs(m.x-P.x)+Math.abs(m.y-P.y)<=8;});},go:function(){
+   var t=16+rnd(10);P.invis=(P.invis||0)+t;mons.forEach(function(m){if(m.awake&&!seesInvis(m)){m.awake=0;m.lost=5;}});return 'Nothing that only has eyes can find you for '+t+' turns.';}},
+ {id:'way',n:'Show me the way',t:'the way down is marked on your map',tier:1,need:function(){return downs.some(function(q){return !seen[q.y][q.x];});},go:function(){
    if(!downs.length)return 'There is no way down from here to show.';
    downs.forEach(function(q){seen[q.y][q.x]=true;});return 'You know where the way down is.';}},
- {id:'turn',n:'Turn them away',t:'everything within eight paces flees for a while',cost:26,go:function(){
+ {id:'turn',n:'Turn them away',t:'what is close to you flees for a while',tier:1,need:function(){return mons.some(function(m){return m.awake&&!m.watcher&&!m.boss&&Math.abs(m.x-P.x)+Math.abs(m.y-P.y)<=8;});},go:function(){
    var n=0;mons.forEach(function(m){if(m.watcher||m.boss)return;
      if(Math.abs(m.x-P.x)+Math.abs(m.y-P.y)<=8){m.flee=12;n++;}});return n?n+' of them turn and go.':'Nothing close enough to turn.';}},
- {id:'lift',n:'Lift what holds me',t:'take the curse off everything you wear, and every cursed flask',cost:34,go:function(){
-   var n=uncurseFlasks();[P.wep,P.off,P.arm,P.ring].forEach(function(r){if(r&&r.cursed){delete r.cursed;delete r.cx;n++;}});
+ {id:'lift',n:'Lift what holds me',t:'take the curse off what you wear, and off your flasks',tier:2,
+  need:function(){return [P.wep,P.off,P.arm,P.ring].some(function(r){return r&&r.cursed;})||P.carry.some(function(c){return c.t==='potion'&&c.bc<0;});},go:function(){
+   var n=uncurseFlasks();[P.wep,P.off,P.arm,P.ring].forEach(function(r){if(r&&r.cursed){r.cursed=null;r.c0=null;delete r.cx;n++;}});
    return n?'The hold on '+n+' thing'+(n===1?'':'s')+' lets go.':'Nothing you wear was held.';}},
- {id:'bless',n:'Bless what I carry',t:'bless your melee weapon, or your armour if the weapon already is',cost:45,go:function(){
+ {id:'bless',n:'Bless what I carry',t:'bless your weapon, or your armour if the weapon already is',tier:2,
+  need:function(){return (P.wep&&!P.wep.bless&&P.wep.t!=='wand')||(P.arm&&!P.arm.bless);},go:function(){
    var r=(P.wep&&!P.wep.bless&&P.wep.t!=='wand')?P.wep:((P.arm&&!P.arm.bless)?P.arm:null);
    if(!r)return 'Everything you carry is already blessed.';r.bless=1;return cap(itemName(r))+' is blessed.';}},
- {id:'boon',n:'Your own gift',t:'the god’s own boon, the one it is known for',cost:80,go:function(g){g.boon();return '';}},
- {id:'proof',n:'Make me proof',t:'proof against one more thing, for good',cost:90,go:function(){
+ {id:'flasks',n:'Bless my flasks',t:'bless the flasks you carry',tier:2,need:function(){return P.carry.some(function(c){return c.t==='potion';});},go:function(){
+   var n=blessFlasks();return n?n+' flask'+(n===1?'':'s')+' warm in your hands.':'You carry no flask that needs it.';}},
+ {id:'proof',n:'Make me proof',t:'proof against one more thing, for good',tier:3,need:function(){return true;},go:function(){
    var left=RESISTS.filter(function(R){return !(P.resist&&P.resist[R.id]);});
    if(!left.length)return 'There is nothing left it can make you proof against.';
    grantResist(left[rnd(left.length)].id,'The answer');return '';}},
- {id:'flasks',n:'Bless my flasks',t:'bless every flask you carry; a cursed one is only made clean',cost:24,go:function(){
-   var n=blessFlasks();return n?n+' flask'+(n===1?'':'s')+' warm in your hands.':'You carry no flask that needs it.';}},
- {id:'more',n:'Make more of me',t:'more maximum health, for good',cost:40,go:function(){
+ {id:'more',n:'Make more of me',t:'more maximum health, for good',tier:3,need:function(){return true;},go:function(){
    var g=hpPct(0.07,4);return '+'+g+' maximum health, for good.';}},
- {id:'raise',n:'Raise me',t:'a whole level, with the choice that comes with it',cost:75,go:function(){
-   prayLevelUp();return '';}}
+ {id:'raise',n:'Raise me',t:'a whole level',tier:3,need:function(){return true;},go:function(){prayLevelUp();return '';}},
+ {id:'boon',n:'Your own gift',t:'the gift it is known for',tier:3,need:function(){return true;},go:function(g){g.boon();return '';}},
+ {id:'trust',n:'Whatever you see I need',t:'leave it to the god',tier:0,need:function(){return true;},go:function(){return '';}}
 ];
 /* a level handed down rather than earned */
 function prayLevelUp(){gainXp(Math.max(1,Math.ceil((P.next-P.xp)*((P.cl&&P.cl.slowXp)||((P.sk&&P.sk.slowLearn)?1.15:1)))+1));}
@@ -8262,85 +8615,179 @@ function prayLevelDown(){
   if(P.picks>0)P.picks--;
   return true;
 }
-/* q or e taken from you for a while */
 function abilitySealed(slot){return P&&P.sealed&&(P.sealed[slot]||0)>turns;}
-function prayCost(base){
-  var onAltar=map[P.y][P.x]===T_ALTAR;
-  var c=base*(1-(apt('faith')-2)*0.08)*(P.sk.pray?0.75:1)*(onAltar?0.7:1)*(P.curse>0?1.5:1);
-  var g=P.god;
-  /* the Drowned Choir answers the badly hurt more cheaply */
-  if(g==='choir'&&P.hp/P.maxHp<0.3)c*=0.5;
-  if(P.sk.votive)c*=0.85;
-  return Math.max(4,Math.round(Math.max(c,base*0.3)));
-}
-/* favour, gained */
-function addFavour(n,why){
-  n=Math.round(n);if(n<=0)return;
-  /* the Keeper of Count takes offerings half again as gladly */
-  if(P.god==='count'&&why==='gift')n=Math.round(n*1.5);
-  P.devotion=Math.min(200,(P.devotion||0)+n);
-}
+/* kept so older calls still work: there are no prices any more */
+function prayCost(base){return base;}
 function favourOfGift(v){return Math.max(0,Math.round(v*0.8));}
+
+/* how long until it will hear you kindly again — never shown */
+function prayWait(){
+  var f=godMind();
+  var w=320+rnd(420);
+  if(f.humour==='stern')w*=1.35;
+  if(P.sk.pray)w*=0.75;
+  w*=1-(apt('faith')-2)*0.05;
+  return Math.round(w);
+}
+/* the smiting: the angrier it is, the worse */
+function godSmite(g,why){
+  P.godAnger=Math.max(0,(P.godAnger||0));
+  var hard=P.godAnger>=3||(P.standing||0)<-60;
+  say(why||('You feel that '+g.n+' is displeased.'),'hit');
+  if(hard&&chance(60)){g.wrath();}
+  var pick=PRAYER_BAD[rnd(PRAYER_BAD.length)];
+  if(hard||chance(55))say(pick.n+' '+pick.go(),'hit');
+  else{var od=PRAYER_ODD[rnd(PRAYER_ODD.length)];say(od.n+' '+od.go(),'warn');}
+  P.godAnger=Math.max(0,P.godAnger-1);
+  P.prayT=Math.max(P.prayT||0,turns)+150+rnd(150);
+}
+
+/* the answer */
+function prayAsk(Pr){
+  var g=godOf(),f=godMind();
+  var onAltar=map[P.y][P.x]===T_ALTAR;
+  var tr=godTroubles(),major=tr.maj.length>0;
+  var left=(P.prayT||0)-turns;
+  var st=(P.standing||0)+(onAltar?10:0)+(apt('faith')-2)*4-(P.curse>0?15:0);
+  useCount('pray',1);
+  say('You pray to '+g.n+(Pr.id==='trust'?', and leave it to '+g.n+' what you need.':' — “'+Pr.n+'.”'),'deep');
+
+  /* angry, or long turned away: it answers, but not the way you wanted */
+  if(P.godAnger>0||st<-30){standingAdd(-4);return godSmite(g);}
+
+  /* asked too soon */
+  if(left>0){
+    var grace=f.humour==='merciful'?420:(f.humour==='stern'?90:200);
+    if(!(major&&left<grace&&st>=-15)&&!(left<60&&st>=55&&tr.min.length)){
+      P.pester=(P.pester||0)+1;
+      standingAdd(-8-P.pester*3);
+      P.prayT+=80+rnd(120);
+      if(P.pester>=2||st<0){P.godAnger=(P.godAnger||0)+1;return godSmite(g,'You feel that '+g.n+' is displeased. You asked too soon.');}
+      say('You feel that '+g.n+' is displeased. You asked too soon.','warn');
+      return;
+    }
+  }
+  P.pester=0;
+  P.favour.hits=(P.favour.hits||0)+1;P.prayerHits=(P.prayerHits||0)+1;
+  var said=[];
+  /* what is killing you comes first, whatever you asked for */
+  tr.maj.forEach(function(t){var s=godFix(t);if(s)said.push(s);});
+  /* the request itself */
+  var need=Pr.need();
+  var odds=55+st*0.45+(f.humour==='generous'?15:0)-(f.humour==='fickle'?20:0);
+  odds=clamp(Math.round(odds),15,94);
+  var granted=false,cost=0;
+  if(Pr.tier===3){
+    var floor=(f.humour==='proud'?75:(f.humour==='generous'?40:50))+(P.greedN||0)*10;
+    var gOdds=clamp(Math.round(20+(st-floor)*1.2),0,70);
+    if(st>=floor&&!major&&chance(gOdds)&&!(Pr.id==='boon'&&P.godBoon)){
+      granted=true;cost=35;
+      if(Pr.id==='boon')P.godBoon=1;
+      var gs=Pr.go(g);said.push(gs||'It gives you what you asked for.');
+      P.greedN=(P.greedN||0)+1;
+      P.prayT=turns+prayWait()+250;
+    }else{
+      cost=f.humour==='proud'?16:8;
+      said.push(f.humour==='proud'?'It will not be told what to give, and it does not like that you tried.':'It does not give you that.');
+      if(f.humour!=='proud'||st>=20){var ins=godGiveInsight(1);if(ins)said.push('Instead: '+ins);}
+      else said.push('It gives you nothing.');
+    }
+  }else if(Pr.id==='trust'){
+    cost=4;standingAdd(f.humour==='proud'?6:2);
+    var ins2=godGiveInsight(st>=40?2:1);if(ins2)said.push(ins2);
+    if(tr.min.length&&st>=10){var s3=godFix(tr.min[rnd(tr.min.length)]);if(s3)said.push(s3);}
+    if(!said.length)said.push('It looks you over and finds nothing you need. It is not displeased that you asked.');
+    granted=true;
+  }else{
+    if(!need){
+      cost=5;
+      var ins3=godGiveInsight(1);
+      said.push(ins3?'You did not need that. It gives you something else: '+ins3:'You did not need that, and it gives you nothing.');
+    }else if(f.humour==='fickle'&&chance(35)){
+      cost=Pr.tier===2?12:6;
+      var ins4=godGiveInsight(1);said.push(ins4?'It gives you something else: '+ins4:'It gives you nothing.');
+    }else if(chance(odds)){
+      granted=true;cost=Pr.tier===2?14:7;
+      var gs2=Pr.go(g);if(gs2)said.push(gs2);
+      /* well pleased: something more, unasked */
+      if(st>=45&&chance(f.humour==='generous'?55:25)){var ins5=godGiveInsight(1);if(ins5)said.push('And more: '+ins5);}
+    }else{
+      cost=4;
+      if(major)said.push('It does not give you what you asked for.');
+      else{var ins6=godGiveInsight(1);said.push('It does not give you what you asked for.'+(ins6?' It gives you this: '+ins6:''));}
+    }
+  }
+  standingAdd(-cost);
+  if(P.prayT<=turns||granted)P.prayT=Math.max(P.prayT||0,turns+prayWait());
+  if(!said.length)said.push('The silence is not unfriendly.');
+  say((major?'You are heard. ':'It answers. ')+said.join(' '),granted||major?'good':'warn');
+}
+
 function pray(){
   if(ui||over)return;
   if(P.silenced>0)return say('You open your mouth to pray and nothing comes out.','warn');
-  var g=GODS.filter(function(x){return x.id===P.god;})[0];
+  var g=godOf(),f=godMind();
   var onAltar=map[P.y][P.x]===T_ALTAR;
-  if(!P.favour)P.favour=rollFavour();
-  var fav=P.devotion||0,cool=Math.max(0,(P.prayAt||0)-turns);
   var cards=[];
-  PRAYERS.forEach(function(Pr){
-    var c=prayCost(Pr.cost),can=fav>=c&&!cool;
-    cards.push({t:Pr.n+' — '+c+' favour',s:Pr.t+(cool?' · '+cool+' turns until you can ask again':(fav<c?' · not enough favour':'')),dim:!can,
-      go:function(){if(!can)return;closeUI();
-        P.devotion=fav-c;P.prayAt=turns+(P.sk.pray?40:70);
-        P.favour.hits++;P.prayerHits=(P.prayerHits||0)+1;useCount('pray',1);
-        say('You pray to '+g.n+' and ask. It answers. '+(Pr.go(g)||''),'good');
-        endTurn();}});
+  PRAYERS.slice(-1).concat(PRAYERS.slice(0,-1)).forEach(function(Pr){
+    cards.push({t:Pr.n+(Pr.tier===3?' — a great thing to ask':''),s:Pr.t,go:function(){
+      closeUI();prayAsk(Pr);if(!over)endTurn();}});
   });
-  /* the one prayer that is a gamble, and says so: ask for more than you have
-     earned. The more favour you hold, the likelier it is answered kindly. */
-  var gc=8,gOdds=Math.min(65,35+Math.floor(fav/4));
-  cards.push({t:'Ask for more than is yours — '+gc+' favour',s:'a gamble: about '+gOdds+'% it gives (a level, health, a lesson, more), '+
-      Math.round((100-gOdds)*0.55)+'% it takes (a level, a step you grew, a gift shut for a while), the rest something strange'+
-      (cool?' · '+cool+' turns until you can ask again':(fav<gc?' · not enough favour':'')),dim:!(fav>=gc&&!cool),
-    go:function(){if(!(fav>=gc&&!cool))return;closeUI();
-      P.devotion=fav-gc;P.prayAt=turns+(P.sk.pray?40:70);useCount('pray',1);
-      say('You pray to '+g.n+' and ask for more than you have earned.','deep');
-      var r=rnd(100);
-      if(r<gOdds)answerPrayer(g);else if(r<gOdds+Math.round((100-gOdds)*0.55))refusePrayer(g);else asidePrayer(g);
-      endTurn();}});
-  /* anything at all can be put down — what the god thinks of it is shown */
-  P.carry.forEach(function(it){
-    var v=favourOfGift(giftValue(it));
-    cards.push({t:'Offer '+itemName(it)+'.',s:(v?'+'+v+' favour':'it will not be taken — nothing'),dim:!v,go:function(){
-      if(!v)return;
-      var at=P.carry.indexOf(it);if(at>=0)P.carry.splice(at,1);
-      addFavour(v,'gift');
-      say('You put '+itemName(it)+' down and step back. It is taken. Favour '+P.devotion+'.','deep');
-      closeUI();pray();}});
-  });
-  if(P.gold>=40){
-    var gv=favourOfGift(Math.min(28,Math.round(P.gold/40))+((P.favour.read==='rich')?12:0));
-    cards.push({t:'Offer your gold.',s:P.gold+'g · +'+gv+' favour',go:function(){
-      P.gold=0;addFavour(gv,'gift');say('You lay out your gold and do not count it again. Favour '+P.devotion+'.','deep');closeUI();pray();}});
+  /* gifts are given on an altar, and only there */
+  if(onAltar){
+    P.carry.forEach(function(it){
+      cards.push({t:'Offer '+itemName(it)+'.',s:'lay it on the altar',go:function(){
+        var at=P.carry.indexOf(it);if(at<0)return;
+        P.carry.splice(at,1);closeUI();godOffer(it);pray();}});
+    });
+    if(P.gold>=40)cards.push({t:'Offer your gold.',s:P.gold+'g, all of it',go:function(){
+      var v=Math.min(28,Math.round(P.gold/40))+((P.favour.read==='rich')?12:0);P.gold=0;closeUI();
+      godOfferValue(v,'You lay out your gold and do not count it again.');pray();}});
+    var bcost=2+Math.floor(P.maxHp*0.03);
+    if(P.maxHp-bcost>=12)cards.push({t:'Offer part of yourself.',s:'−'+bcost+' max health, for good',go:function(){
+      P.maxHp=Math.max(10,P.maxHp-bcost);P.hp=Math.min(P.hp,P.maxHp);P.offered=(P.offered||0)+bcost;closeUI();
+      godOfferValue(24,'It is taken.');pray();}});
   }
-  var bcost=2+Math.floor(P.maxHp*0.03);
-  if(P.maxHp-bcost>=12)
-    cards.push({t:'Offer part of yourself.',s:'−'+bcost+' max health, for good · +22 favour',
-      go:function(){P.maxHp=Math.max(10,P.maxHp-bcost);P.hp=Math.min(P.hp,P.maxHp);P.offered=(P.offered||0)+bcost;
-        addFavour(22,'blood');say('It is taken. Favour '+P.devotion+'.','deep');closeUI();pray();}});
   cards.push({t:'Think better of it.',s:'',go:function(){closeUI();paint();}});
-  modal({title:'Prayer · '+g.n+' · favour '+fav,
-    flavor:g.n+' likes '+g.likes+'.\n\n'+
-      'Favour is built by what you offer, by what you kill, and by the rituals you take, and you spend it on what you ask for. Only one prayer is a gamble, and it says so.'+
-      (onAltar?'\n\nYou are on an altar: everything costs less here.':'')+
-      (P.curse>0?'\n\nYou are cursed: everything costs half again.':'')+
-      (cool?'\n\nYou asked recently. '+cool+' turns before you can ask again — offerings are taken any time.':''),
+  var lines=godKnowLines();
+  modal({title:'Prayer · '+g.n,
+    flavor:cap(g.n)+' — '+(g.about||'')+'.\n\n'+
+      'Ask for what you want. It answers what it thinks you need: it can see your pack, and this floor, and what is coming, and you cannot. It does not like being asked often, and it will not tell you how often is too often.'+
+      (onAltar?'\n\nOn the altar: '+godMood()+' '+godWait()+' You can lay gifts here.':'\n\nOn an altar you could feel how it regards you, and lay gifts.')+
+      (lines.length?'\n\nWhat you know of it:\n• '+lines.join('\n• '):'\n\nYou know nothing yet of what it wants this time. Altars, and scraps of other people’s prayers, will tell you.'),
     cards:cards});
   $('veilFlavor').style.whiteSpace='pre-line';
 }
+/* a gift on the altar: how it is taken says something about the god */
+function godOffer(it){
+  var f=godMind();
+  var v=giftValue(it);
+  var G=GIFT_KINDS.filter(function(x){return x.k===it.t;})[0];
+  var kn=G?G.n:'that';
+  var msg;
+  if(v>=34){msg='It is taken gladly. The altar is warm under your hands.';if(f.good.indexOf(it.t)>=0)godNote('gift+:'+it.t,'It took '+kn+' gladly, when I laid it on an altar.');}
+  else if(v>=16)msg='It is taken.';
+  else if(v>=2)msg='It is taken, without much interest.';
+  else{msg='It is thrown back at your feet.';var q=freeNear(P.x,P.y)||{x:P.x,y:P.y};it.x=q.x;it.y=q.y;loot.push(it);
+    if(it.t===f.bad)godNote('gift-:'+it.t,'It would not have '+kn+'. It threw it back at my feet.');}
+  godOfferValue(v,'You lay '+itemName(it)+' on the altar. '+msg,1);
+}
+function godOfferValue(v,msg,quietMsg){
+  var f=godMind();
+  P.offerF=P.offerF||{};
+  var had=P.offerF[depth]||0;
+  var gain=Math.round(v*0.35*(P.sk.votive?1.3:1));
+  if(gain>0){
+    /* anger goes first */
+    while(P.godAnger>0&&gain>=8){P.godAnger--;gain-=8;msg+=' Something hard in it eases.';}
+    var room=Math.max(0,16-had);gain=Math.min(gain,room);P.offerF[depth]=had+gain;
+    if(gain>0)standingAdd(gain);
+    else if(room<=0)msg+=' It has had enough from you on this floor.';
+  }else if(v<0)standingAdd(Math.round(v*0.3));
+  say(msg,v>=2?'deep':'warn');
+}
 function doPray(){}
+
 
 /* Being heard is not free either. Every answer takes a piece and keeps it. */
 var TITHES=[
@@ -8473,7 +8920,7 @@ var PRAYER_ODD=[
    return 'You are standing somewhere you have not been.';}},
  {id:'roused',n:'The floor stirs.',go:function(){
    var n=0;mons.forEach(function(m){if(chance(50)){m.awake=1;n++;}});
-   return n+' things wake up, and nothing is given to you.';}},
+   return n+' thing'+(n===1?' wakes':'s wake')+' up, and nothing is given to you.';}},
  {id:'traded',n:'A trade you did not agree to.',go:function(){
    var h=Math.ceil(P.maxHp*0.4)-P.hp;
    P.hp=Math.ceil(P.maxHp*0.4);
@@ -8563,6 +9010,7 @@ function passiveNotice(){
 function search(){
   if(ui||over)return;
   if(useHere())return;
+  godDeed('patience',0.5);
   searchLurkers();
   var found=0,skill=searchSkill(),SR=searchReach();
   /* every square you can see from where you stand — not a fixed ring. What is
@@ -9012,7 +9460,10 @@ function describeTile(x,y){
       (K.ghost?', and it does not look like a door would stop it':'')+
       (m.mini?', and it has a name':'')+(m.boss?', and it is one of the two':'')+
       (m.awake?'. It knows you are here.':'. It has not noticed you.')+
-      (m.bled?' '+m.hp+' of '+m.maxHp+' left in it.':''));
+      (m.bled?' '+m.hp+' of '+m.maxHp+' left in it.':'')+
+      (monStatusWords(m)?' '+monStatusWords(m):'')+
+      (K.sap?' It feeds on focus, not blood.':'')+
+      (seesInvis(m)?' Its eyes would follow you even if you could not be seen.':''));
   });
   npcs.forEach(function(n){
     if(n.x!==x||n.y!==y||!lit)return;
@@ -9194,6 +9645,7 @@ function reachy(){return wkind()==='reach'||P.sk.reach;}
 function endTurn(){
   if(ui||over)return paint();
   if(P.sk.wardMind&&P.ward>0){P.held=0;P.muddle=0;P.blind=0;}
+  seeInvisTurn();
   moveMons();
   /* slowed: everything down here gets to move again before you do */
   if(!over&&P.slow>0&&chance(55)){moveMons();}
@@ -9224,7 +9676,7 @@ function endTurn(){
   if(P.vanish>0){P.vanish--;if(!P.vanish)say('You flicker back into sight.','warn');}
   if(P.invis>0){
     P.invis--;
-    mons.forEach(function(m){if(m.awake&&chance(40)){m.awake=0;m.lost=3;}});
+    mons.forEach(function(m){if(m.awake&&chance(40)&&!seesInvis(m)){m.awake=0;m.lost=3;}});
     if(!P.invis)say('You are visible again.','warn');
   }
   if(P.muddle>0){P.muddle--;if(!P.muddle)say('Your thoughts settle.','good');}
@@ -9235,6 +9687,8 @@ function endTurn(){
     if(m.shown>0)m.shown--;
     if(m.faded>0){m.faded--;if(!m.faded&&inSight(m.x,m.y))say(cap(monKind(m).n)+' is there again.','warn');}
     if(m.quickT>0)m.quickT--;
+    if(m.slowT>0){m.slowT--;if(!m.slowT&&inSight(m.x,m.y))say(cap(monKind(m).n)+' moves freely again.','dim');}
+    if(m.weakT>0)m.weakT--;
     if(m.invisT>0){m.invisT--;if(!m.invisT&&inSight(m.x,m.y))say(cap(monKind(m).n)+' flickers back into sight.','warn');}
     if(m.poisoned>0){m.poisoned--;m.hp-=2*(m.dbl&&m.dbl.poison?2:1);m.bled=1;if(!m.poisoned&&m.dbl)delete m.dbl.poison;if(m.hp<=0)return slay(m);}
     if(m.bleeding>0){m.bleeding--;m.hp-=(2+Math.floor(depth/8))*(m.dbl&&m.dbl.bleed?2:1);m.bled=1;if(!m.bleeding&&m.dbl)delete m.dbl.bleed;if(m.hp<=0)return slay(m);}
@@ -9335,7 +9789,8 @@ function arrive(){
     if(s)return offerRitual(s);
   }
   if(map[P.y][P.x]===T_ALTAR&&!P.sawAltar){P.sawAltar=1;
-    say('An altar. You could pray here, and it might carry further.','deep');}
+    say('An altar. Pray here and you can feel how your god regards you, and lay gifts on it.','deep');}
+  if(map[P.y][P.x]===T_ALTAR)altarClue();
   /* A basin is used up by being used, not by being looked at — walking away
      from one leaves the water where it is. */
   /* Water in a basin and coals in a forge are things you stop and use, not
@@ -9507,7 +9962,7 @@ function springTrap(t,soft){
 
 /* something awake, close, and aware of you */
 function hunted(){
-  if(P.invis>0)return false;
+  if(P.invis>0&&!mons.some(function(m){return seesInvis(m)&&m.awake&&!m.flee&&Math.abs(m.x-P.x)+Math.abs(m.y-P.y)<=5;}))return false;
   return mons.some(function(m){
     return !m.watcher&&m.awake&&!m.flee&&Math.abs(m.x-P.x)+Math.abs(m.y-P.y)<=5;});
 }
@@ -9516,8 +9971,9 @@ function hungry(){return P.foodStage>=1||P.drinkStage>=1;}
 /* can it tell where you are this turn? by eye if there is a line and light,
    by ear if you are close or making a noise about it */
 function senses(m,K,dist){
-  if(P.vanish>0)return false;
-  if(P.invis>0)return dist<=1;
+  var seer=(P.vanish>0||P.invis>0)&&seesInvis(m);
+  if(P.vanish>0&&!seer)return false;
+  if(P.invis>0&&!seer)return dist<=1;
   if(m.lost>0)return false;
   var see=sightOf();
   if(canSeeMon(m)&&dist<=see+4)return true;
@@ -9605,6 +10061,8 @@ function moveMons(){
       step(m,Math.sign(m.x-P.x),Math.sign(m.y-P.y));return;
     }
     if(m.held>0){m.held--;return;}
+    /* slowed: it gets every other turn */
+    if(m.slowT>0&&turns%2===0)return;
     if(m.lost>0)return;
     if(m.wait)return;
     var dist=Math.abs(P.x-m.x)+Math.abs(P.y-m.y);
@@ -9619,7 +10077,7 @@ function moveMons(){
     }
     if(m.flee>0){step(m,Math.sign(m.x-P.x),Math.sign(m.y-P.y));return;}
     if(!m.awake){
-      if(P.invis>0){if(m.guard)return;if(m.patrol)return patrolStep(m,K);
+      if(P.invis>0&&!seesInvis(m)){if(m.guard)return;if(m.patrol)return patrolStep(m,K);
         if(K.roam&&chance(55)){step(m,rnd(3)-1,rnd(3)-1);}return;}
       var quiet=(P.sk.beastfriend&&K.nohands)?0.45:1;
       if(P.sk.lightStep)quiet*=0.6;
@@ -9666,7 +10124,7 @@ function moveMons(){
       return;
     }
     if(fallBack(m,K))return;
-    for(var s=0;s<((K.fast||m.quickT>0)?2:1);s++){
+    for(var s=0;s<((K.fast||m.quickT>0)&&!(m.slowT>0)?2:1);s++){
       if(over)return;
       dist=Math.abs(P.x-m.x)+Math.abs(P.y-m.y);
 
@@ -9787,6 +10245,12 @@ var MON_WORKS=[
   go:function(m,K){
     say(cap(K.n)+' says your position out loud and your feet agree with it.','hit');
     afflict('held',3+rnd(3));}},
+ {id:'siphon',n:'drinks your focus',need:4,cool:9,rng:8,
+  go:function(m,K){
+    var dr=Math.min(P.foc,3+Math.floor(depth/3)+rnd(3));
+    if(!dr){say(cap(K.n)+' reaches for your focus and finds nothing to take.','warn');return;}
+    P.foc-=dr;m.hp=Math.min(m.maxHp,m.hp+dr*2);
+    say(cap(K.n)+' draws the focus out of you like breath. \u2212'+dr+' FP.','hit');}},
  {id:'call',n:'calls something else in',need:12,cool:26,rng:9,
   go:function(m,K){
     var spot2=freeNear(m.x,m.y);
@@ -9811,6 +10275,7 @@ function monWorks(m,K){
     /* everything else reaches for what suits it */
     if(W.id==='bolt'&&K.burn)out.push(W);
     else if(W.id==='drain'&&K.drain)out.push(W);
+    else if(W.id==='siphon'&&(K.sap||K.drain||(K.mind&&P.focMax>=10)))out.push(W);
     else if(W.id==='call'&&K.summon)out.push(W);
     else if((W.id==='hex'||W.id==='rot')&&K.curse)out.push(W);
     else if((W.id==='wither'||W.id==='dark'||W.id==='bind')&&K.mind)out.push(W);
@@ -9829,6 +10294,8 @@ function monCast(m,K,dist){
   if(dist>(W.rng||6))return false;
   if(!inSight(m.x,m.y))return false;
   m.castT=W.cool||12;
+  var WC={bolt:'#FF8A3A',drain:'#D05070',siphon:'#88C8F0',hex:'#B090E8',rot:'#B090E8',wither:'#C8B8F0',dark:'#8A84A0',bind:'#C0504A'}[W.id];
+  if(WC)shotFx(m.x,m.y,P.x,P.y,WC,'bolt','mon');
   W.go(m,K);
   return true;
 }
@@ -9944,6 +10411,7 @@ function restThreat(){
 }
 function rest(){
   if(ui||over)return;
+  godDeed('patience',0.5);
   /* a watch that was never relieved does not lie down */
   if(P.cl&&P.cl.noRest&&!P.sk.canRest)
     return say('You do not lie down. You have not lain down in a very long time '+
@@ -10316,11 +10784,12 @@ function pickUp0(l){
     /* the Old Rule keeps taking: half of every coin, for the rest of the run */
     var take=P.poorHands?Math.max(1,Math.floor(l.amt/2)):l.amt;
     P.gold+=take;
-    say('You pick up '+take+' gold'+(P.poorHands?'. The rest does not come with you.':'.'),'find');return;}
+    say('You pick up '+take+' gold'+(P.poorHands?'. The rest does not come with you.':'.'),'find');godDeed('greed',take>=40?1:0.6);return;}
   if(l.t==='ammo'){loot=loot.filter(function(x){return x!==l;});
     P.ammo+=l.amt;say('You gather '+l.amt+' arrows.','find');return;}
   if(l.t==='page'){loot=loot.filter(function(x){return x!==l;});
     if(l.rh!==undefined)return readRiddleHint(l.rh);
+    if(l.gc)return readGodClue('scrap');
     readLore(l.i);return;}
   /* a chart is read where it lies and goes into the map book — it never
      takes a place in the pack */
@@ -11643,11 +12112,11 @@ function openGate(x,y){
   var g=gates.filter(function(e){return e.x===x&&e.y===y;})[0];
   if(!g){map[y][x]=T_FLOOR;return;}
   if(g.failed){
-    say('The gate has nothing more to say to you. It does not open.','warn');
+    say('The gate has nothing more to say to you. It does not open \u2014 though an unlocking word, or one that breaks stone, would see you through.','warn');
     return paint();
   }
   var R=RIDDLES[g.r];
-  modal({title:'A sealed gate',flavor:R.q+'\n\nIt will ask once.'+riddleKnownLine(g.r),narrow:1,
+  modal({title:'A sealed gate',flavor:R.q+'\n\nIt will ask once. (Unlock, or break stone, would open it without answering \u2014 and without its reward.)'+riddleKnownLine(g.r),narrow:1,
     cards:shuffle(R.o).map(function(opt){
       return {t:opt,s:riddleMark(g.r,opt),go:function(){
         closeUI();
@@ -11663,10 +12132,10 @@ function openGate(x,y){
           g.failed=1;
           modal({title:'Wrong',
             flavor:'"'+opt+'." Nothing happens, and nothing is going to. '+
-              'The gate goes quiet and stays where it is.\n\nYou will have to find another way round.',
+              'The gate goes quiet and stays where it is.\n\nIt only ever keeps a side room. An unlocking word, or one that breaks stone, will still get you in.',
             btn:'Step back',go:function(){closeUI();paint();}});
         }}};
-    })});
+    }).concat([{t:'Step back.',s:'leave it for now',go:function(){closeUI();paint();}}])});
   $('veilFlavor').style.whiteSpace='pre-line';
 }
 
@@ -11758,8 +12227,8 @@ function postMortem(){
   });
   if((P.cls==='bellringer'||P.cls==='lamplighter')&&P.foc>=P.cl.a1.c)
     out.push('You had '+P.foc+' focus and never spent it on '+P.cl.a1.n+'.');
-  if(turns>=(P.prayAt||0)&&(P.devotion||0)>=prayCost(18))
-    out.push('You had '+P.devotion+' favour and never asked for anything with it.');
+  if(turns>=(P.prayT||0)&&P.hp<=0&&(P.standing||0)>=0&&!(P.godAnger>0))
+    out.push('Your god would have heard you. You did not pray.');
   if(P.bleed>0&&!out.length)out.push('You bled out. Bleeding does not stop on its own.');
   if(depth>1&&out.length<3)out.push('The stair up was still where you left it.');
   if(!out.length)out.push('You had nothing left. That one was earned.');
@@ -11892,8 +12361,9 @@ function lastLook(){
   out+='<div class="post"><b>What '+
     (GODS.filter(function(x){return x.id===P.god;})[0]||{n:'it'}).n+' wanted this time</b>'+
     favourText().split('\n').map(function(t){return '<i>'+esc(t)+'</i>';}).join('')+
-    '<i>You asked '+((P.favour&&P.favour.hits)||0)+' time'+
-    (((P.favour&&P.favour.hits)||0)===1?'':'s')+', and died with '+(P.devotion||0)+' favour unspent.</i></div>';
+    godTruth().map(function(t){return '<i>'+esc(t)+'</i>';}).join('')+
+    '<i>You were answered '+((P.favour&&P.favour.hits)||0)+' time'+
+    (((P.favour&&P.favour.hits)||0)===1?'':'s')+'.</i></div>';
   if(P.tithes)out+='<div class="post"><b>What being heard cost you</b><i>'+
     P.tithes+' answer'+(P.tithes===1?'':'s')+', and every one of them took something and kept it.</i></div>';
   return out;
@@ -12068,7 +12538,7 @@ function fireEvent(id){
       for(var dy2=-9;dy2<=9&&shut<2;dy2++)for(var dx2=-9;dx2<=9&&shut<2;dx2++){
         var ax2=P.x+dx2,ay2=P.y+dy2;
         if(ax2<1||ay2<1||ax2>=MAP_W-1||ay2>=MAP_H-1)continue;
-        if(map[ay2][ax2]===T_DOOR){map[ay2][ax2]=T_GATE;
+        if(map[ay2][ax2]===T_DOOR&&!gateWouldBlock(ax2,ay2,{x:P.x,y:P.y})){map[ay2][ax2]=T_GATE;
           gates.push({x:ax2,y:ay2,r:riddleFor(depth)});shut++;}
       }
       if(shut)ensureConnected();
@@ -13489,7 +13959,17 @@ function draw(){
     if(l.sunk&&(l.x!==P.x||l.y!==P.y)){
       ctx.save();ctx.globalAlpha=0.55+0.25*Math.sin((turns+l.x)*0.8);
       put('\u2727','#E8D890',l.x-camX,l.y-camY);ctx.restore();return;}
-    put(l.t==='lost'?'&':itemGlyph(l),l.t==='lost'?'#C89A50':itemColor(l),l.x-camX,l.y-camY);});
+    /* every item sits on a dark plate with a rim of its own colour, so it reads
+       on lava, water, blood, moss, a lit floor or anything else */
+    var ic=l.t==='lost'?'#C89A50':vivid(itemColor(l)),ivx=l.x-camX,ivy=l.y-camY;
+    if(ivx>=0&&ivy>=0&&ivx<VIEW_W&&ivy<VIEW_H){
+      ctx.save();ctx.fillStyle='rgba(10,10,12,0.82)';
+      var ix0=ivx*TILE+2,iy0=ivy*TILE+2,iw=TILE-4,rr=Math.max(2,TILE*0.18);
+      ctx.beginPath();ctx.moveTo(ix0+rr,iy0);ctx.arcTo(ix0+iw,iy0,ix0+iw,iy0+iw,rr);ctx.arcTo(ix0+iw,iy0+iw,ix0,iy0+iw,rr);
+      ctx.arcTo(ix0,iy0+iw,ix0,iy0,rr);ctx.arcTo(ix0,iy0,ix0+iw,iy0,rr);ctx.closePath();ctx.fill();
+      ctx.globalAlpha=0.55;ctx.strokeStyle=ic;ctx.lineWidth=1;ctx.stroke();ctx.restore();
+    }
+    put(l.t==='lost'?'&':itemGlyph(l),ic,l.x-camX,l.y-camY);});
   /* your marks: a small flag of the symbol in the corner of the square */
   if(P.marks&&P.marks[depth])P.marks[depth].forEach(function(mk){
     var vx=mk.x-camX,vy=mk.y-camY;
@@ -13539,7 +14019,9 @@ function draw(){
     /* still pretending: it borrows the mark of the thing it is copying */
     var ML=mimicLook(m);
     if(ML){put(ML.g,ML.c,m.x-camX,m.y-camY);return;}
-    var col=(m.held>0||m.lost>0)?'#7A7A8C':vivid(K.c);
+    /* while you are unseen, whatever cannot see you goes grey; what can, keeps its colour */
+    var blindToYou=(P.vanish>0||(P.invis>0&&Math.max(Math.abs(m.x-P.x),Math.abs(m.y-P.y))>1))&&!seesInvis(m);
+    var col=(m.held>0||m.lost>0||blindToYou)?'#7A7A8C':vivid(K.c);
     if(K.invis)col='#8A96A2';
     if(m.flash>0){
       ctx.strokeStyle='#E06A60';ctx.lineWidth=2;
@@ -13567,6 +14049,7 @@ function draw(){
       }
       put(K.g,col,m.x-camX,m.y-camY);
     }
+    if(!m.watcher)monMarks(m,bx,by);
     if(!m.watcher&&m.hp<m.maxHp){
       var w=TILE-6;
       ctx.fillStyle='#0E0D0C';ctx.fillRect((m.x-camX)*TILE+3,(m.y-camY)*TILE+TILE-4,w,2);
@@ -15281,8 +15764,22 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.25';
+var GAME_VERSION='0.26';
 var VERSIONS=[
+ {v:'0.26',d:'16 Nov 2026',n:[
+  'Prayer rebuilt. Your god is drawn fresh every run from six, and so is what it wants: two things it likes to see you do, one or two it will not abide, what it thinks of gifts, and a temper of its own. None of it is shown \u2014 altars carry lines cut by other delvers, scraps of other people\u2019s prayers turn up on the floor, and now and then you feel it watching when you do something it cares about. Everything you find out is kept on your character sheet.',
+  'You ask for what you want, and it answers what it thinks you need. Whatever is killing you comes first. It can see your pack and the floor: it may name the poison flask you were about to drink, take a curse off something you never knew was cursed, show you the thing waiting on this floor and ward you against it, or leave food at your feet. Great asks (a level, more health, proofing, its own gift) are only ever granted to those it is well pleased with.',
+  'No more prices or favour numbers. It does not say how long you must wait between prayers, and asking too soon makes it displeased \u2014 twice, and it is angry, and the gods are not mocked. On an altar you can feel how it regards you, and gifts can only be laid on an altar.',
+  'Eight new workings: rime bolt (slows), venom bolt (poisons), kindle (sets alight), rend (everything beside you bleeds), sleet (slows everything close), miasma (a cloud of poison), sap strength (weakens), arc spark (jumps to a second target). Wands of rime and venom.',
+  'You can see what is working on everything: coloured rings round a creature for burning, poisoned, bleeding, slowed, weakened, held and frightened, with embers, bubbles, drops and frost moving on it, and looking at it says so.',
+  'Shots are drawn: arrows, thrown things and workings fly from whoever loosed them, with a flash where they left, and burst where they land \u2014 on the thing they hit, or as a mark on the wall or pillar that stopped them. Enemy shots and spells too.',
+  'Spellbooks are no longer rare: one turns up about every three floors, scriveners always sell one, and other traders sometimes do.',
+  'Things that feed on focus: wick-eaters, thought-leeches, hush-sisters, pale mothkin and unmakers of words take FP instead of most of the blood, and some deep casters can draw your focus from across a room.',
+  'Some things see the invisible \u2014 more of them the deeper you go, and every boss. They keep their colour on the map while you are unseen, wear a small eye, and the log tells you they can still see you.',
+  'Riddle gates now only ever guard a side room, never the way on, and there is something inside. Unlock opens a sealed gate or a stairwell grate; break stone breaks a gate. You can step back from a riddle without answering.',
+  'Rooms off the beaten path usually have something in them, and anything behind a hidden seam or a cracked wall always does.',
+  'Items sit on a dark plate rimmed in their colour, so they are easy to see on any ground.'
+ ]},
  {v:'0.25',d:'10 Nov 2026',n:[
   'The soundtrack: Fall in Seconds plays under the game. Each book plays its own album, shuffled; the fifth plays all of them until it is written. A boss fades the song out and its own theme in, and when the fight ends the song comes back from where it stopped. The soundtrack page on the title screen plays any album, with a link to the YouTube channel. Music button and Settings \u2192 Sound for volume, skipping and turning it off.',
   'Delve has its own website now, so a link opens on any phone or tablet in the browser \u2014 no app needed. Add it to your home screen and it opens full screen.',
@@ -15639,7 +16136,9 @@ function charSheet(){
     '<p class="legendHead">What you have learned</p>'+sk+
     (rit?'<p class="legendHead">Rituals taken</p><table class="rec keys2">'+rit+'</table>':'')+
     hexSheet()+
-    '<p class="legendHead">Favour</p><p class="legendNote">'+(P.devotion||0)+' favour with '+(GODS.filter(function(x){return x.id===P.god;})[0]||{n:'your god'}).n+'. Spend it by praying (p).</p>'+
+    '<p class="legendHead">Your god</p><p class="legendNote">'+esc(cap(godOf().n))+' \u2014 '+esc(godOf().about||'')+'. What it wants changes every run. Pray with p; on an altar you can feel how it regards you.</p>'+
+    (godKnowLines().length?'<table class="rec keys2">'+godKnowLines().map(function(t){return '<tr><td>'+esc(t)+'</td></tr>';}).join('')+'</table>'
+      :'<p class="legendNote">You know nothing yet of what it wants. Altars and scraps of other people\u2019s prayers will tell you.</p>')+
     (res.length?'<p class="legendHead">Proof against</p><table class="rec keys2">'+resistList().map(function(R){
       return '<tr><td style="color:'+R.c+'">\u26e8 '+esc(R.n)+'</td><td>'+esc(R.t)+'</td></tr>';}).join('')+'</table>':'')+
     '<p class="legendHead">The run so far</p><p class="legendNote">Floor '+depth+' \u00b7 '+turns+' turns \u00b7 '+kills+
@@ -15702,7 +16201,7 @@ var BTN_DEFAULT=['mShoot','mThrow','mQ','mE','mCast','mPray','mSearch','mDisarm'
   'mMap','mChar','mInv','mCodex','mKeys','mSave','mSet','mMusic'];
 var BTN_INFO={mShoot:['Shoot','fire your ranged weapon or wand, or throw your blade'],mThrow:['Throw','throw something from your pack'],
   mQ:['Q','your first ability'],mE:['E','your second ability'],mCast:['Cast','a working you have learned'],
-  mPray:['Pray','spend favour'],mSearch:['Search','look around you, or use what a room has'],mDisarm:['Disarm','take a trap apart'],
+  mPray:['Pray','ask your god for help'],mSearch:['Search','look around you, or use what a room has'],mDisarm:['Disarm','take a trap apart'],
   mDoor:['Door','shut or open a door'],mTake:['Take','pick up what is here'],mDrop:['Drop','put something down'],
   mRest:['Rest','rest until healed'],mStairs:['Stairs','take the stair you are on'],mMap:['Map','the map book'],
   mChar:['Me','your character sheet'],mInv:['Pack','the whole pack'],mCodex:['Codex','what you have read'],
@@ -16237,7 +16736,7 @@ var ACT_HOW={
  ab1:'your first class ability',ab2:'your second class ability',
  cast:'the list of workings you have learned and scrolls you carry, with what each does',
  rest:'rest until healed — only when nothing is awake and close. Lamplighters and Bellringers also get 5 FP back each rest',
- pray:'pray — offer things to build favour, and spend favour on what you ask for: healing, cleansing, focus, a blessing',
+ pray:'pray \u2014 ask your god for something; it answers what it thinks you need. Do not ask too often.',
  search:'search every square you can see — seams, traps, what is behind the furniture. Close is a good look; far is a glance',
  disarm:'take apart a trap you have found and are standing beside',
  door:'pull a door shut behind you',
@@ -16326,6 +16825,13 @@ function mapTable(){
     'a ring round you','one arc for each thing working on you: red bleeding, green poisoned, orange burning, violet cursed, pale lilac muddled, grey blinded, blue slowed, dark red held, gold quick, teal warded, amber braced, sage unseen'],
    [glyphIcon('@','#C9B27A'),'a person','walk into them to talk. Some will fight you \u2014 they keep their mark and colour when they do'],
    [glyphIcon('g','#B04A44'),'something that wants you dead','every creature wears a letter; a ringed letter has a name; a ring with a crown is the chief of the place; a ring in a diamond is one of the dread ones; a warden wears a filled square'],
+   [mapIcon(function(g){g.fillStyle='#B04A44';g.fillText('g',TILE/2,TILE/2);
+      var c=['#F07A2E','#8FD050','#9ED8F0'];c.forEach(function(col,i){g.strokeStyle=col;g.lineWidth=2.2;g.lineCap='round';
+      g.beginPath();g.arc(TILE/2,TILE/2,TILE/2-1,-Math.PI/2+i*2.094+0.14,-Math.PI/2+(i+1)*2.094-0.14);g.stroke();});}),
+    'a ring round a creature','what is working on it: orange burning, green poisoned, red bleeding, ice-blue slowed, amber weakened, dark red held, pale violet frightened'],
+   [mapIcon(function(g){g.fillStyle='#B04A44';g.fillText('g',TILE/2,TILE/2);g.strokeStyle='#F0E090';g.lineWidth=1;
+      g.beginPath();g.ellipse(5.5,4.5,3.6,2.2,0,0,Math.PI*2);g.stroke();g.fillStyle='#F0E090';g.beginPath();g.arc(5.5,4.5,1.1,0,Math.PI*2);g.fill();}),
+    'a small eye, while you are unseen','it can see you anyway. Anything without the eye goes grey: it has lost you'],
    [stairIcon(true),'a stair down','three bars, widest at the top \u2014 space to take it'],
    [stairIcon(false),'a stair up','three bars, widest at the bottom'],
    [glyphIcon(GLYPH[T_DOOR],tint(T_DOOR)),'a door, shut','walk into it to open it'],
@@ -16362,7 +16868,7 @@ function mapTable(){
    [glyphIcon('\u2727','#E8D890'),'a glint under the water','something at the bottom \u2014 wade in for it'],
    [mapIcon(function(g){drawStairIconOn(g);drawGrate(g,0,0);}),'a locked stairwell','the key is somewhere on the floor: in a far room, or on something that carries it'],
    [glyphIcon(GLYPH[T_RUBBLE],tint(T_RUBBLE)),'rubble, bones, moss, mud','slow going'],
-   [glyphIcon(GLYPH[T_ALTAR],tint(T_ALTAR)),'an altar','somewhere to pray, and sometimes to bless'],
+   [glyphIcon(GLYPH[T_ALTAR],tint(T_ALTAR)),'an altar','pray here to feel how your god regards you, and lay gifts; other delvers sometimes cut a line about it into the stone'],
    [glyphIcon(GLYPH[T_CRATE],tint(T_CRATE)),'crates, shelves, tables','somebody\u2019s things \u2014 a search goes through them'],
    [glyphIcon(GLYPH[T_COLUMN],tint(T_COLUMN)),'a column','stone; it blocks the way and the view'],
    [glyphIcon('&','#C89A50'),'something lost','the thing you came down to find']
@@ -16387,7 +16893,7 @@ function makeTable(){
 function statsHelp(){
   var basics=[
    ['Health','how much you can take. At 0 the run is over. It grows a little every level, more for a tough class'],
-   ['FP (focus)','what abilities, learned workings and some prayers cost. It comes back slowly, and not while something is hunting you'],
+   ['FP (focus)','what abilities and learned workings cost. It comes back slowly, and not while something is hunting you'],
    ['Attack','how hard you hit up close \u2014 your own strength plus the weapon, less if it is a weapon your class was never taught'],
    ['Defence','how much of each blow you turn aside. Armour is most of it'],
    ['Sight','how many squares you can see. Dark floors and deeper floors take some of it away'],
@@ -16428,7 +16934,7 @@ function helpScreen(){
       ['Temper (+N)','Every weapon and coat has a temper, the +N after its name. Steel found deeper is tempered harder, and that is what keeps your arm level with what lives down there. Rarity multiplies the base; temper is added on top.'],
       ['Locked rooms','A room you can only get into through a lock, a bar or a mark was locked for a reason: a strongroom with a flask that changes you for good, a storehouse of food and water, or an armoury of better steel. The ordinary stuff is left outside.'],
       ['Proof against','A flask of proofing makes you proof against fire, poison, bleeding or cursing, for good. Most of it then simply does not take. What does get in lasts half as long and hurts half as much.'],
-      ['Prayer','Your god keeps a tally of favour. Offerings, kills and rituals build it; you spend it on what you choose to ask for, at the price shown. An altar makes everything cheaper; a curse makes it dearer. Nothing about it is a gamble.'],
+      ['Prayer','Your god is drawn fresh each run, and so is what it likes, what it will not abide, and its temper. None of it is shown: you learn it from what is cut into altars, from scraps of other people\u2019s prayers, and from the moments you feel it watching. Doing what it likes raises you in its regard; doing what it hates lowers you. Pray (p) and ask for something: it fixes whatever is killing you first, and it may give you something other than what you asked \u2014 it can see your pack and the floor. Asking too soon angers it, and it does not say how soon is too soon. Gifts are laid on an altar, and the altar lets you feel how it regards you.'],
       ['Lockboxes','Open a chest and the box is still yours: it shuts, it carries in one place of the pack, and it holds '+BOX_CAP+' things. Use it from the pack to put things in or take them out.'],
       ['Darts and trip-stones','With no bow, f throws a dart from the bundle, the way it would loose an arrow. Pick them up again and they go back into the bundle. A trip-stone thrown at a square sets off any trap on it or beside it, with you nowhere near.'],
       ['Being seen','Things only come for you while they can see you or hear you. Break the line and get away, and they go to where they last had you, look about, and give up. Anything called to you knows where you are for a while.'],
@@ -16736,7 +17242,7 @@ function begin(c,q){
      cls:c.id,cl:c,quest:q.id,qd:q,x:0,y:0,
      hp:c.hp,maxHp:c.hp,atk:c.atk,def:c.def,sight:c.sight,
      foc:c.foc,focMax:c.foc,lvl:1,xp:0,next:18,
-     ammo:c.ammo,gold:c.gold,god:c.god,
+     ammo:c.ammo,gold:c.gold,god:rollGod(c),
      who:(pendingName||whoAmI()),player:playerName(),
      carry:[],wep:null,arm:null,wand:null,ring:null,rituals:{},watched:{},
      q:{leaves:0,marked:0,lost:0,kills:0},
@@ -16746,7 +17252,7 @@ function begin(c,q){
      clean:false,eye:0,sightExtra:0,sightTaken:0,greed:false,
      prayAt:0,sawAltar:0,sk:{},taken:{},venom:0,farsee:0,picklock:0,
      lastHit:'',lastFrom:null,bag:null,tales:{},meals:0,prayerHits:0,offered:0,quickStep:0,muddle:0,
-     packCost:0,poorHands:0,unnamed:0,tithes:0,loosed:0,fonts:{},favour:rollFavour(),
+     packCost:0,poorHands:0,unnamed:0,tithes:0,loosed:0,fonts:{},favour:rollFavour(),standing:rnd(8),prayT:150+rnd(200),godKnow:[],godAnger:0,bookGap:1,
      slow:0,invis:0,burnArm:0,swapT:0,loud:0,heavyFoot:0,noDrop:0,
      tint:pendingTint||'#EDE6DA',
      potMap:[],ringMap:[],trapCols:[]};
@@ -16808,6 +17314,7 @@ function begin(c,q){
   enterLevel(1,true);
   say(q.hook,'lore');
   say('You are '+c.n+'. '+c.t,'deep');
+  say('This time you pray to '+godOf().n+' \u2014 '+godOf().about+'. What it wants of you, you will have to find out.','deep');
   say('Press x to search around you, z to take a trap apart, o to shut a door behind you, p to pray, t to drop, space on a stair to use it. Click anything you can see to be told what it is.','warn');
   $('codexCount').textContent=CODEX.length;
   setMode();paint();
@@ -16848,7 +17355,7 @@ var STAT_DO={
  search:'better at finding hidden doors, passages and what is tucked away',
  sight:'see half a square further in the dark, and raises how far sight can be grown',
  magic:'read scrolls and learn bindings more surely, +2 maximum FP, workings 6% harder',
- faith:'everything you pray for costs less favour',
+ faith:'your god hears you sooner, and more kindly',
  craft:'mend at a rest: metal from 4, wood from 6, anything from 8'
 };
 function statMaxOf(k,c){
@@ -16909,8 +17416,8 @@ var MASTERY=[
    {at:6,n:'Trap Sense',t:'You catch traps as you walk past them, unasked.',ap:function(){P.sk.walkEye=Math.max(P.sk.walkEye||0,1);}},
    {at:20,n:'Set Again',t:'A trap you lift and set again does twice the damage and catches anything.',ap:function(){P.sk.rig=1;}}]},
  {id:'pray',keys:['pray'],n:'Devotion',what:'prayers answered',ranks:[
-   {at:4,n:'Devout',t:'Every kill earns 1 more favour.',ap:function(){P.sk.devout=1;}},
-   {at:12,n:'Votive',t:'Everything you pray for costs 15% less.',ap:function(){P.sk.votive=1;}}]},
+   {at:4,n:'Devout',t:'What you do that your god cares about counts half again \u2014 for good or ill.',ap:function(){P.sk.devout=1;}},
+   {at:12,n:'Votive',t:'Gifts laid on an altar count for a third more.',ap:function(){P.sk.votive=1;}}]},
  {id:'trade',keys:['trade'],n:'Trade',what:'things sold',ranks:[
    {at:12,n:'Haggler',t:'Traders pay 6% more of a thing’s worth, and take 6% off what they ask.',ap:function(){P.sk.haggle=1;}},
    {at:40,n:'Old Customer',t:'Another 6% each way.',ap:function(){P.sk.haggle=2;}}]},
@@ -17076,6 +17583,13 @@ function progressCompat(){
   var usedLooks={};Object.keys(pLook).forEach(function(k){usedLooks[pLook[k]]=1;});
   for(var li=0;li<POTIONS.length;li++)if(!pLook[li]){var fr=P_LOOKS.filter(function(v){return !usedLooks[v];})[0]||'odd';pLook[li]=fr;usedLooks[fr]=1;}
   P.stUp=P.stUp||{};P.pickAt=P.pickAt||{};P.use=P.use||{};
+  /* workings added since this save was made get a binding and a title of their own */
+  var padLooks=function(look,pool){var used={};Object.keys(look).forEach(function(k){used[look[k]]=1;});
+    for(var si=0;si<SPELLS.length;si++)if(!look[si]){var fr=pool.filter(function(v){return !used[v];})[0]||pool[si%pool.length];look[si]=fr;used[fr]=1;}};
+  if(typeof bLook!=='undefined'&&bLook)padLooks(bLook,BOOK_LOOKS);
+  if(typeof sLook!=='undefined'&&sLook)padLooks(sLook,SCROLL_LOOKS);
+  /* prayer from before v0.26: favour becomes regard, and the god decides what it wants */
+  if(P.favour)godMind();
   if(P.picks===undefined)P.picks=0;
   var t=P.taken||{};
   if(t['Slow Learner'])P.sk.slowLearn=1;
@@ -18515,6 +19029,7 @@ var FLASK_KEYS=['hp','maxHp','foc','focMax','atk','def','invis','quickStep','war
 var FLASK_DUR={bleed:'bleed',poison:'poison',burn:'burn',slow:'slow',blind:'blind'};
 function drinkFlask(rec){
   var st=potState(rec),E=potEffect(rec.i);
+  godDeed('thirst',1);
   if(E.id==='vanish'){
     var t=Math.round(st.dur*(st.bc>0?2:(st.bc<0?0.5:1)));
     P.vanish=(P.vanish||0)+t;P.invis=Math.max(P.invis||0,t);
@@ -19094,6 +19609,459 @@ function soundPane(body){
     re.textContent='Looking…';musicLoad(function(){re.textContent=musicCount()+' songs found';});});
   acts.appendChild(test);acts.appendChild(re);wrap.appendChild(acts);
   body.appendChild(wrap);
+}
+
+
+/* ═══════════════ v0.26 — what can see you when nothing should ═══════════════
+   Deeper down, more of what lives there sees the hidden. A thing that sees
+   you through invisibility keeps its colour on the map and wears a small eye. */
+function seesInvis(m){
+  if(!m||m.watcher)return false;
+  if(m.seeInv||m.boss||m.fin)return true;
+  if(m.mini&&depth>=8)return true;
+  var K=monKind(m);
+  return !!(K&&(K.seeInv||((K.ghost||K.invis)&&(K.b||0)>=1)));
+}
+function seeInvisTurn(){
+  if(!P||!(P.invis>0||P.vanish>0))return;
+  var told=0;
+  mons.forEach(function(m){
+    if(!seesInvis(m))return;
+    if(m.lost>0)m.lost=0;
+    if(!m.toldSee&&canSeeMon(m)){m.toldSee=1;told++;
+      if(told<=2)say(cap(monKind(m).n)+' is looking straight at you. It can see what others cannot.','hit');}
+  });
+  if(told>2)say('And '+(told-2)+' more of them can still see you.','hit');
+}
+function seeInvOdds(d){return clamp(Math.round((d-3)*2.0),0,40);}
+
+/* ═══════════════ what is working on them ═══════════════ */
+function monSlow(m,t,quiet){
+  if(m.boss||m.fin)t=Math.ceil(t/2);
+  var was=m.slowT>0;
+  m.slowT=Math.max(m.slowT||0,t);
+  if(!was&&!quiet&&inSight(m.x,m.y))say(cap(monKind(m).n)+' slows.','good');
+  return true;
+}
+function monWeak(m,t,quiet){
+  var was=m.weakT>0;
+  m.weakT=Math.max(m.weakT||0,t);
+  if(!was&&!quiet&&inSight(m.x,m.y))say(cap(monKind(m).n)+' goes slack in the arm.','good');
+  return true;
+}
+var MON_STATUS=[
+ ['burning','burning','#F07A2E'],['poisoned','poisoned','#8FD050'],['bleeding','bleeding','#E0453C'],
+ ['slowT','slowed','#9ED8F0'],['weakT','weakened','#E0B060'],['held','held fast','#C0504A'],['flee','frightened','#C8C0E0']
+];
+function monStatusList(m){return MON_STATUS.filter(function(s){return (m[s[0]]||0)>0;});}
+function monStatusWords(m){
+  var l=monStatusList(m).map(function(s){return s[1];});
+  if(!l.length)return '';
+  return 'It is '+(l.length>1?l.slice(0,-1).join(', ')+' and '+l[l.length-1]:l[0])+'.';
+}
+/* drawn round it on the map: an arc of the ring for each thing, in its own colour */
+function monMarks(m,bx,by){
+  var on=monStatusList(m);
+  if(on.length){
+    var cx=bx+TILE/2,cy=by+TILE/2,r=TILE/2-0.5,gap=on.length>1?0.28:0,step=Math.PI*2/on.length;
+    ctx.save();ctx.lineWidth=2.2;ctx.lineCap='round';
+    on.forEach(function(s,i){var a0=-Math.PI/2+i*step+gap/2;ctx.strokeStyle=s[2];
+      ctx.beginPath();ctx.arc(cx,cy,r,a0,a0+step-gap);ctx.stroke();});
+    ctx.restore();
+  }
+  if((P.invis>0||P.vanish>0)&&seesInvis(m)){
+    ctx.save();ctx.fillStyle='rgba(14,13,12,0.85)';ctx.fillRect(bx+1,by+1,9,7);
+    ctx.strokeStyle='#F0E090';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(bx+5.5,by+4.5,3.6,2.2,0,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#F0E090';ctx.beginPath();ctx.arc(bx+5.5,by+4.5,1.1,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.font='600 '+(TILE-5)+'px "IBM Plex Mono", monospace';
+  }
+}
+
+/* ═══════════════ shots you can see ═══════════════
+   Everything loosed or thrown or worked down a line is drawn travelling: a
+   flash where it left, the thing itself in flight, and a burst where it
+   stops — on the thing it hit, or on the stone. */
+var CFX={shots:[],bursts:[],busy:0};
+var CUR_SPELL='',FLY_TRACE=null;
+var SPELL_COL={ember:'#FF8A3A',kindle:'#FF6A2A',frost:'#9ED8F0',rime:'#B8E8FF',lance:'#F4F0FF',thorn:'#E05050',
+  drain:'#C070E0',venom:'#8FD050',miasma:'#9AD860',sap:'#E0B060',arc:'#F8F070',shatter:'#C8B8A0',rend:'#E05050',sleet:'#C8E8F8',rout:'#E0D8FF'};
+function fxNow(){return (window.performance&&performance.now)?performance.now():Date.now();}
+function shotColor(){
+  if(FLY_KIND==='arrow')return '#EADFC4';
+  if(FLY_KIND==='throw')return '#C8C0B0';
+  if(FLY_KIND==='spell')return SPELL_COL[CUR_SPELL]||'#C8B8F8';
+  return '#EADFC4';
+}
+function shotFx(x0,y0,x1,y1,col,kind,end,hits){
+  if(typeof document==='undefined')return;
+  var now=fxNow(),len=Math.max(1,Math.max(Math.abs(x1-x0),Math.abs(y1-y0)));
+  var dur=Math.min(340,90+len*30),start=Math.max(now,CFX.busy-70);
+  CFX.busy=start+dur;
+  CFX.shots.push({x0:x0,y0:y0,x1:x1,y1:y1,c:col||'#EADFC4',k:kind||'bolt',t0:start,dur:dur,end:end||'none',
+    hits:(hits||[]).map(function(h){var f=Math.max(Math.abs(h.x-x0),Math.abs(h.y-y0))/len;return {x:h.x,y:h.y,f:f,done:0};})});
+  if(CFX.shots.length>24)CFX.shots.shift();
+  try{fxStart();}catch(e){}
+}
+function burstFx(x,y,col,kind,fx,fy,delay){
+  var n=kind==='ring'?0:(kind==='wall'?9:7),ps=[];
+  var back=(fx!==undefined)?Math.atan2(fy-y,fx-x):null;
+  for(var i=0;i<n;i++){
+    var a=back!==null&&kind==='wall'?back+(Math.random()-0.5)*2.2:Math.random()*Math.PI*2;
+    ps.push({a:a,v:0.35+Math.random()*0.65,r:0.7+Math.random()*1.3});
+  }
+  CFX.bursts.push({x:x,y:y,c:col,k:kind,t0:fxNow()+(delay||0),dur:kind==='wall'?520:420,ps:ps});
+  if(CFX.bursts.length>40)CFX.bursts.shift();
+  try{fxStart();}catch(e){}
+}
+/* a whole area of things struck at once: a ring on each */
+function ringsFx(list,col){list.forEach(function(m,i){burstFx(m.x,m.y,col,'ring',undefined,undefined,i*40);});}
+function drawCombatFx(g,W,H,t){
+  if(!CFX.shots.length&&!CFX.bursts.length)return;
+  if(!P||!map||typeof camAt!=='function')return;
+  var cam=camAt(),s=W/(canvas.width||W),T=TILE*s,now=fxNow();
+  var X=function(x){return (x-cam.x+0.5)*T;},Y=function(y){return (y-cam.y+0.5)*T;};
+  g.save();
+  for(var i=CFX.shots.length-1;i>=0;i--){
+    var S=CFX.shots[i];
+    if(now<S.t0)continue;
+    var p=(now-S.t0)/S.dur;
+    if(p>=1){
+      if(S.end==='wall')burstFx(S.x1,S.y1,S.k==='arrow'?'#D8D0C0':S.c,'wall',S.x0,S.y0);
+      else if(S.end==='mon')burstFx(S.x1,S.y1,S.c,'mon');
+      else burstFx(S.x1,S.y1,S.c,'fizzle');
+      CFX.shots.splice(i,1);continue;
+    }
+    S.hits.forEach(function(h){if(!h.done&&p>=h.f&&!(h.x===S.x1&&h.y===S.y1)){h.done=1;burstFx(h.x,h.y,S.c,'mon');}});
+    var ax=X(S.x0),ay=Y(S.y0),bx=X(S.x1),by=Y(S.y1);
+    var hx=ax+(bx-ax)*p,hy=ay+(by-ay)*p,ang=Math.atan2(by-ay,bx-ax);
+    /* where it left from */
+    if(p<0.35){var mp=p/0.35;g.globalAlpha=0.8*(1-mp);g.strokeStyle=S.c;g.lineWidth=2;
+      g.beginPath();g.arc(ax,ay,T*(0.25+mp*0.45),0,Math.PI*2);g.stroke();}
+    g.globalAlpha=1;
+    if(S.k==='arrow'||S.k==='throw'){
+      var L=T*0.55;g.strokeStyle=S.c;g.lineWidth=Math.max(1.5,T*0.08);
+      g.beginPath();g.moveTo(hx-Math.cos(ang)*L,hy-Math.sin(ang)*L);g.lineTo(hx,hy);g.stroke();
+      g.fillStyle=S.c;g.beginPath();g.moveTo(hx+Math.cos(ang)*T*0.16,hy+Math.sin(ang)*T*0.16);
+      g.lineTo(hx+Math.cos(ang+2.5)*T*0.16,hy+Math.sin(ang+2.5)*T*0.16);g.lineTo(hx+Math.cos(ang-2.5)*T*0.16,hy+Math.sin(ang-2.5)*T*0.16);g.fill();
+    }else{
+      /* a working: a bright head and a fading tail */
+      var tail=Math.min(p,0.35),tx=ax+(bx-ax)*(p-tail),ty=ay+(by-ay)*(p-tail);
+      var gr=g.createLinearGradient(tx,ty,hx,hy);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,S.c);
+      g.strokeStyle=gr;g.lineWidth=Math.max(2,T*0.16);g.lineCap='round';
+      g.beginPath();g.moveTo(tx,ty);g.lineTo(hx,hy);g.stroke();
+      g.shadowColor=S.c;g.shadowBlur=10;g.fillStyle=S.c;g.beginPath();g.arc(hx,hy,Math.max(2.5,T*0.17),0,Math.PI*2);g.fill();
+      g.shadowBlur=0;g.fillStyle='rgba(255,255,255,0.85)';g.beginPath();g.arc(hx,hy,Math.max(1,T*0.07),0,Math.PI*2);g.fill();
+    }
+  }
+  for(var j=CFX.bursts.length-1;j>=0;j--){
+    var B=CFX.bursts[j];
+    if(now<B.t0)continue;
+    var q=(now-B.t0)/B.dur;
+    if(q>=1){CFX.bursts.splice(j,1);continue;}
+    var cx=X(B.x),cy=Y(B.y);
+    if(B.k==='ring'||B.k==='mon'){
+      g.globalAlpha=0.85*(1-q);g.strokeStyle=B.c;g.lineWidth=2;
+      g.beginPath();g.arc(cx,cy,T*(0.2+q*0.55),0,Math.PI*2);g.stroke();
+    }
+    if(B.k==='wall'){
+      /* a mark on the stone where it struck, and grit coming off it */
+      g.globalAlpha=0.9*(1-q*q);g.strokeStyle=B.c;g.lineWidth=1.6;
+      g.beginPath();g.moveTo(cx-T*0.22,cy-T*0.22);g.lineTo(cx+T*0.22,cy+T*0.22);g.moveTo(cx+T*0.22,cy-T*0.22);g.lineTo(cx-T*0.22,cy+T*0.22);g.stroke();
+    }
+    if(B.k==='fizzle'){g.globalAlpha=0.7*(1-q);g.fillStyle=B.c;g.beginPath();g.arc(cx,cy,T*0.14*(1-q),0,Math.PI*2);g.fill();}
+    B.ps.forEach(function(pt){
+      var d=T*(0.15+q*0.7)*pt.v;g.globalAlpha=(1-q);g.fillStyle=B.c;
+      g.beginPath();g.arc(cx+Math.cos(pt.a)*d,cy+Math.sin(pt.a)*d+(B.k==='wall'?q*q*T*0.3:0),pt.r*(1-q*0.5)*Math.max(1,T/22),0,Math.PI*2);g.fill();
+    });
+  }
+  g.restore();
+}
+/* what is working on each thing you can see, drawn moving: embers off what
+   burns, bubbles off what is poisoned, drops off what bleeds, frost round
+   what is slowed */
+function drawMonAuras(g,W,H,t){
+  if(!P||!map||!mons||over)return;
+  var cam=camAt(),s=W/(canvas.width||W),T=TILE*s;
+  g.save();
+  mons.forEach(function(m,mi){
+    if(m.watcher||!canSeeMon(m))return;
+    var K=monKind(m);if(((K.invis&&!m.spotted)||m.invisT>0)&&Math.abs(m.x-P.x)+Math.abs(m.y-P.y)>1)return;
+    var vx=m.x-cam.x,vy=m.y-cam.y;
+    if(vx<0||vy<0||vx>=VIEW_W||vy>=VIEW_H)return;
+    var cx=(vx+0.5)*T,cy=(vy+0.5)*T,ph=mi*1.7;
+    if(m.burning>0)for(var a=0;a<3;a++){var k=((t*0.0011+a/3+ph)%1);g.globalAlpha=0.9*(1-k);g.fillStyle=a%2?'#FFC060':'#FF7A2E';
+      g.beginPath();g.arc(cx+Math.sin(t*0.004+a*2+ph)*T*0.22,cy+T*0.2-k*T*0.75,Math.max(1,T*0.06),0,Math.PI*2);g.fill();}
+    if(m.poisoned>0)for(var b=0;b<2;b++){var k2=((t*0.0006+b/2+ph)%1);g.globalAlpha=0.75*(1-k2);g.strokeStyle='#9AE060';g.lineWidth=1;
+      g.beginPath();g.arc(cx-T*0.25+b*T*0.5,cy+T*0.15-k2*T*0.55,Math.max(1.2,T*0.07),0,Math.PI*2);g.stroke();}
+    if(m.bleeding>0){var k3=((t*0.0012+ph)%1);g.globalAlpha=0.9*(1-k3);g.fillStyle='#E0453C';
+      g.beginPath();g.arc(cx+T*0.18,cy+k3*T*0.5,Math.max(1,T*0.055),0,Math.PI*2);g.fill();}
+    if(m.slowT>0)for(var c=0;c<3;c++){var an=t*0.0012+c*2.1+ph;g.globalAlpha=0.8;g.fillStyle='#CDEFFF';
+      g.fillRect(cx+Math.cos(an)*T*0.42-1,cy+Math.sin(an)*T*0.42-1,2,2);}
+    if(m.weakT>0){g.globalAlpha=0.55+0.3*Math.sin(t*0.005+ph);g.strokeStyle='#E0B060';g.lineWidth=1.2;
+      g.beginPath();g.moveTo(cx-T*0.12,cy-T*0.5);g.lineTo(cx,cy-T*0.4);g.lineTo(cx+T*0.12,cy-T*0.5);g.stroke();}
+  });
+  g.restore();
+}
+
+/* ═══════════════ the new workings ═══════════════ */
+function flyRider(m,rider){
+  if(!m||m.hp<=0||mons.indexOf(m)<0)return;
+  switch(rider){
+    case 'poison':if(monPoison(m,10))say(cap(monKind(m).n)+' is poisoned.','good');break;
+    case 'slow':monSlow(m,6+Math.floor(P.lvl/4));break;
+    case 'weak':monWeak(m,10);break;
+    case 'kindle':if(monBurn(m,9))say(cap(monKind(m).n)+' catches.','good');break;
+  }
+}
+function adjMons(r){return mons.filter(function(m){return !m.watcher&&!lurkHidden(m)&&Math.max(Math.abs(m.x-P.x),Math.abs(m.y-P.y))<=r;});}
+function castNew(id,dx,dy){
+  switch(id){
+    case 'rime':fly(dx,dy,Math.round(8+P.lvl*1.5+roll(4)),'Rime takes',0,0,'slow');return true;
+    case 'venom':fly(dx,dy,6+P.lvl+roll(3),'The venom takes',0,0,'poison');return true;
+    case 'kindle':fly(dx,dy,6+P.lvl+roll(4),'The flame takes',0,0,'kindle');return true;
+    case 'sap':fly(dx,dy,5+roll(3)+Math.floor(P.lvl/2),'It saps',0,0,'weak');return true;
+    case 'arc':{
+      fly(dx,dy,Math.round((10+P.lvl*2+roll(4))),'The spark takes');
+      var T0=FLY_TRACE,h=T0&&T0.hits.length?T0.hits[T0.hits.length-1]:null;
+      if(h){
+        var nx=mons.filter(function(m){return !m.watcher&&!(m.x===h.x&&m.y===h.y)&&!lurkHidden(m)&&
+          Math.max(Math.abs(m.x-h.x),Math.abs(m.y-h.y))<=3&&inSight(m.x,m.y);})
+          .sort(function(a,b){return (Math.abs(a.x-h.x)+Math.abs(a.y-h.y))-(Math.abs(b.x-h.x)+Math.abs(b.y-h.y));})[0];
+        if(nx){
+          var d=Math.max(1,Math.round((7+P.lvl*1.4+roll(3))*workMul())-Math.floor(nx.def/2));
+          shotFx(h.x,h.y,nx.x,nx.y,SPELL_COL.arc,'bolt','mon');
+          nx.hp-=d;nx.awake=1;nx.bled=1;
+          say('It jumps to '+monKind(nx).n+' for '+d+'.','hit');
+          if(nx.hp<=0)slay(nx);
+        }
+      }
+      return true;}
+    case 'rend':{
+      var near=adjMons(1);
+      if(!near.length){say('Nothing close enough to open.','warn');return true;}
+      ringsFx(near,SPELL_COL.rend);
+      near.forEach(function(m){if(mons.indexOf(m)<0)return;
+        var d=Math.max(1,Math.round((6+P.lvl+roll(3))*workMul())-Math.floor(m.def/3));
+        m.hp-=d;m.awake=1;m.bled=1;say('It opens '+monKind(m).n+' for '+d+'.','hit');
+        if(m.hp<=0)return slay(m);monBleed(m,8);});
+      return true;}
+    case 'sleet':{
+      var cold=adjMons(3).filter(function(m){return inSight(m.x,m.y);});
+      if(!cold.length){say('Sleet hisses on the stone. Nothing close enough to catch it.','warn');return true;}
+      ringsFx(cold,SPELL_COL.sleet);
+      cold.forEach(function(m){if(mons.indexOf(m)<0)return;
+        var d=Math.max(1,Math.round((3+roll(3)+Math.floor(P.lvl/3))*workMul()));
+        m.hp-=d;m.awake=1;m.bled=1;
+        if(m.hp<=0)return slay(m);monSlow(m,5,1);});
+      say('Sleet comes down round you. '+cold.length+' of them slow.','good');
+      return true;}
+    case 'miasma':{
+      var aim=aimPoint?aimExtend(aimPoint.x,aimPoint.y):{x:P.x+dx*14,y:P.y+dy*14};
+      var land=lineEnd(aimPoint?aimPoint.x:aim.x,aimPoint?aimPoint.y:aim.y);
+      shotFx(P.x,P.y,land.x,land.y,SPELL_COL.miasma,'bolt','none');
+      var cloud=mons.filter(function(m){return !m.watcher&&Math.max(Math.abs(m.x-land.x),Math.abs(m.y-land.y))<=1;});
+      for(var oy=-1;oy<=1;oy++)for(var ox=-1;ox<=1;ox++)burstFx(land.x+ox,land.y+oy,SPELL_COL.miasma,'fizzle',undefined,undefined,120+rnd(140));
+      if(!cloud.length){say('A green cloud hangs where it lands, and nothing is in it.','warn');return true;}
+      cloud.forEach(function(m){if(mons.indexOf(m)<0)return;m.awake=1;m.bled=1;
+        var d=Math.max(1,Math.round(4*workMul()));m.hp-=d;if(m.hp<=0)return slay(m);
+        monPoison(m,9,1);});
+      say('A green cloud breaks over '+cloud.length+' of them. They are poisoned.','good');
+      return true;}
+  }
+  return false;
+}
+/* a gate or a grate within reach, for the unlocking word */
+function unlockGateNear(){
+  for(var ky=-1;ky<=1;ky++)for(var kx=-1;kx<=1;kx++){
+    var x=P.x+kx,y=P.y+ky;
+    if(map[y]&&map[y][x]===T_GATE){
+      map[y][x]=T_FLOOR;gates=gates.filter(function(e){return !(e.x===x&&e.y===y);});
+      say('The seal on the gate gives way and it opens. The riddle goes unanswered — and so does whatever it was keeping for the one who answered it.','good');
+      return true;}
+  }
+  if(FL&&FL.lock&&!FL.lock.open){
+    for(var gy=-1;gy<=1;gy++)for(var gx=-1;gx<=1;gx++){
+      var sx=P.x+gx,sy=P.y+gy;
+      if(map[sy]&&map[sy][sx]===T_DOWN){FL.lock.open=1;say('The grate over the stairwell unlocks and swings up.','good');return true;}
+    }
+  }
+  return false;
+}
+
+/* ═══════════════ the floor, rewarded ═══════════════ */
+/* who can get where: doors count as open, gates as shut (or not), and
+   hidden seams and cracked walls as stone (or not) */
+function floodMask(root,secrets,gatesShut){
+  var reach=blank(false);if(!root)return reach;
+  var q=[[root.x,root.y]],head=0;reach[root.y][root.x]=true;
+  while(head<q.length){
+    var c=q[head++];
+    for(var i=0;i<4;i++){
+      var x=c[0]+[1,-1,0,0][i],y=c[1]+[0,0,1,-1][i];
+      if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1||reach[y][x])continue;
+      var t=map[y][x];
+      if(t===T_GATE&&gatesShut)continue;
+      if((t===T_HIDDEN||t===T_CRACK)){if(!secrets)continue;}
+      else if((SOLID[t]&&!DOORISH[t])||t===T_PIT)continue;
+      reach[y][x]=true;q.push([x,y]);
+    }
+  }
+  return reach;
+}
+/* would a gate on this square cut a stair off from the rest of the floor? */
+function gateWouldBlock(x,y,from){
+  var was=map[y][x];map[y][x]=T_GATE;
+  var root=from||anyStair(),R=floodMask(root,false,true),bad=false;
+  ups.concat(downs).forEach(function(q){if(!R[q.y][q.x])bad=true;});
+  if(from&&!bad){var R2=floodMask(anyStair(),false,true);if(!R2[from.y][from.x])bad=true;}
+  map[y][x]=was;
+  return bad;
+}
+function roomOpenings(r){
+  var ops=[];
+  for(var y=r.y-1;y<=r.y+r.h;y++)for(var x=r.x-1;x<=r.x+r.w;x++){
+    if(x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h)continue;
+    if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1)continue;
+    var t=map[y][x];
+    if(t===T_HIDDEN||t===T_CRACK)continue;
+    if(!SOLID[t]||DOORISH[t])ops.push({x:x,y:y});
+  }
+  return ops;
+}
+function stairIn(r){return ups.concat(downs).some(function(q){return q.x>=r.x&&q.x<r.x+r.w&&q.y>=r.y&&q.y<r.y+r.h;});}
+function lootIn(r){return loot.some(function(l){return l.x>=r.x&&l.x<r.x+r.w&&l.y>=r.y&&l.y<r.y+r.h;});}
+function freeIn(r){
+  for(var i=0;i<60;i++){var x=r.x+rnd(r.w),y=r.y+rnd(r.h);if(clearSpot(x,y))return {x:x,y:y};}
+  return null;
+}
+/* A riddle gate keeps something, never the way on: it goes across a doorway
+   or a passage whose far side leads nowhere else — a side room, a wing, a
+   dead end — and there is always something worth having beyond it. */
+function placeRiddleGate(d){
+  var root=anyStair();if(!root)return false;
+  var base=floodMask(root,false,true),cands=[];
+  for(var y=1;y<MAP_H-1;y++)for(var x=1;x<MAP_W-1;x++){
+    var t=map[y][x];
+    if(!base[y][x]||stairAt(x,y))continue;
+    if(t===T_DOOR||t===T_OPEN)cands.push({x:x,y:y,w:3});
+    else if(t===T_FLOOR&&!roomAt(x,y)){
+      /* a pinch in a passage: stone on two facing sides */
+      var ns=SOLID[map[y-1][x]]&&SOLID[map[y+1][x]],ew=SOLID[map[y][x-1]]&&SOLID[map[y][x+1]];
+      if(ns!==ew)cands.push({x:x,y:y,w:1});
+    }
+  }
+  var bag=[];shuffle(cands).forEach(function(c){for(var i=0;i<c.w;i++)bag.push(c);});
+  var tried={};
+  for(var n=0;n<bag.length&&n<160;n++){
+    var C=bag[n],key=C.x+','+C.y;if(tried[key])continue;tried[key]=1;
+    if(loot.some(function(l){return l.x===C.x&&l.y===C.y;})||traps.some(function(t2){return t2.x===C.x&&t2.y===C.y;}))continue;
+    var was=map[C.y][C.x];map[C.y][C.x]=T_GATE;
+    var R=floodMask(root,false,true),ok=true;
+    ups.concat(downs).forEach(function(q){if(!R[q.y][q.x])ok=false;});
+    var behind=[];
+    if(ok)for(var yy=1;yy<MAP_H-1;yy++)for(var xx=1;xx<MAP_W-1;xx++)
+      if(base[yy][xx]&&!R[yy][xx]&&map[yy][xx]===T_FLOOR)behind.push({x:xx,y:yy});
+    if(!ok||behind.length<6||behind.length>MAP_W*MAP_H/6){map[C.y][C.x]=was;continue;}
+    gates.push({x:C.x,y:C.y,r:riddleFor(d)});
+    var free=behind.filter(function(q){return clearSpot(q.x,q.y);});
+    var inRoom=free.filter(function(q){return roomAt(q.x,q.y);});
+    var pick=(inRoom.length?inRoom:free);
+    if(pick.length){var q=pick[rnd(pick.length)],it=makeItem(d+3);it.x=q.x;it.y=q.y;loot.push(it);}
+    return true;
+  }
+  return false;
+}
+/* once a floor is built: no secret is empty, and a room off the beaten way
+   is worth the walk */
+function rewardNooks(d){
+  if(d>=LAST)return;
+  var root=anyStair();if(!root)return;
+  var open=floodMask(root,false,false),all=floodMask(root,true,false);
+  var done=blank(false),placed=0;
+  /* behind a seam or a crack: something, always */
+  for(var y=1;y<MAP_H-1;y++)for(var x=1;x<MAP_W-1;x++){
+    if(done[y][x]||!all[y][x]||open[y][x]||map[y][x]!==T_FLOOR)continue;
+    var cells=[],q=[[x,y]],h=0;done[y][x]=true;
+    while(h<q.length){var c=q[h++];
+      if(map[c[1]][c[0]]===T_FLOOR)cells.push(c);
+      for(var k=0;k<4;k++){var ax=c[0]+[1,-1,0,0][k],ay=c[1]+[0,0,1,-1][k];
+        if(ax<1||ay<1||ax>=MAP_W-1||ay>=MAP_H-1||done[ay][ax])continue;
+        if(!all[ay][ax]||open[ay][ax])continue;
+        if(map[ay][ax]===T_HIDDEN||map[ay][ax]===T_CRACK)continue;
+        done[ay][ax]=true;q.push([ax,ay]);}
+    }
+    var free=cells.filter(function(z){return clearSpot(z[0],z[1]);});
+    if(!free.length)continue;
+    var has=loot.some(function(l){return cells.some(function(z){return z[0]===l.x&&z[1]===l.y;});});
+    if(!has){
+      var z=free.splice(rnd(free.length),1)[0];var it=makeItem(d+4);it.x=z[0];it.y=z[1];loot.push(it);placed++;
+      if(free.length&&chance(55)){var z2=free.splice(rnd(free.length),1)[0];
+        var g=chance(50)?{t:'gold',amt:coin(25+rnd(25+d*6))}:makeItem(d+3);g.x=z2[0];g.y=z2[1];loot.push(g);}
+    }
+    if(free.length&&chance(30)){var z3=free[rnd(free.length)];loot.push({t:'page',gc:1,x:z3[0],y:z3[1]});}
+  }
+  /* the way between the stairs, and the rooms off it */
+  var onPath={};
+  var path=pathBetween(ups[0]||root,downs[0]);
+  path.forEach(function(p){var r=roomAt(p.x,p.y);if(r)onPath[rooms.indexOf(r)]=1;});
+  rooms.forEach(function(r,ri){
+    if(ri===0||onPath[ri]||r.shop||r.safe||stairIn(r))return;
+    var m=mid(r);if(!open[m.y]||!open[m.y][m.x])return;
+    if(lootIn(r))return;
+    if(!chance(72))return;
+    if(r.bare){
+      var opts=(r.type.desc||[]).filter(function(t){return !bareDesc(t);});
+      if(!opts.length)return;
+      r.desc=opts[rnd(opts.length)];r.bare=0;
+    }
+    var s=freeIn(r);if(!s)return;
+    var roll2=rnd(100),it2;
+    if(roll2<40)it2=makeItem(d+2);
+    else if(roll2<56)it2={t:'gold',amt:coin(15+rnd(20+d*3))};
+    else if(roll2<70){var L=CHEST_LOCKS[rnd(CHEST_LOCKS.length)];it2={t:'chest',lock:L.id,opened:0};if(L.id==='riddle')it2.r=riddleFor(d);}
+    else if(roll2<84)it2=rations(d);
+    else if(roll2<94)it2={t:'potion',i:potionFor(d)};
+    else it2={t:'page',gc:1};
+    it2.x=s.x;it2.y=s.y;loot.push(it2);placed++;
+  });
+  return placed;
+}
+function pathBetween(a,b){
+  if(!a||!b)return [];
+  var W=MAP_W,prev=new Int32Array(W*MAP_H).fill(-1),q=[a.y*W+a.x],h=0;prev[a.y*W+a.x]=a.y*W+a.x;
+  var goal=b.y*W+b.x;
+  while(h<q.length){var c=q[h++];if(c===goal)break;
+    var cx=c%W,cy=(c-cx)/W;
+    for(var k=0;k<4;k++){var nx=cx+[1,-1,0,0][k],ny=cy+[0,0,1,-1][k];
+      if(nx<1||ny<1||nx>=W-1||ny>=MAP_H-1)continue;var n=ny*W+nx;if(prev[n]>=0)continue;
+      var t=map[ny][nx];if((SOLID[t]&&!DOORISH[t])||t===T_PIT)continue;
+      prev[n]=c;q.push(n);}
+  }
+  if(prev[goal]<0)return [];
+  var out=[],c2=goal,guard=0;
+  while(c2!==a.y*W+a.x&&guard++<W*MAP_H){out.push({x:c2%W,y:Math.floor(c2/W)});c2=prev[c2];}
+  return out;
+}
+/* a binding every few floors, and scraps of other people's prayers */
+function placeSpellbook(d){
+  if(d>=LAST)return;
+  var had=loot.some(function(l){return l.t==='book';});
+  P.bookGap=(P.bookGap||0)+1;
+  if(had){P.bookGap=0;return;}
+  if(P.bookGap>=3||(P.bookGap>=2&&chance(15))){
+    var s=spot(1);if(!s)return;
+    loot.push({t:'book',i:bookSpell(d),x:s.x,y:s.y});P.bookGap=0;
+  }
+}
+function placeScraps(d){
+  if(d>=LAST)return;
+  if(chance(50)){var s=spot(1);if(s)loot.push({t:'page',gc:1,x:s.x,y:s.y});}
+}
+function floorExtras26(d){
+  if(d>=LAST||!P)return;
+  try{placeScraps(d);}catch(e){}
+  try{rewardNooks(d);}catch(e){}
+  try{placeSpellbook(d);}catch(e){}
 }
 
 $('goBtn').onclick=titleScreen;
