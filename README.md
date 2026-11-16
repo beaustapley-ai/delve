@@ -1,29 +1,31 @@
-# Delve — handoff notes (current: v0.26, 16 Nov 2026)
+# Delve — handoff notes (current: v0.26.1, 16 Nov 2026)
 
-**Heads-up for the next chat:** v0.26 (16 Nov) was delivered to Beau as `index.html`, but the game file (~1.2 MB) was too large to write back into this project from the session. If `delve/Index.html` here still says `GAME_VERSION='0.25'`, it is stale: get v0.26 from Beau (attach it, or from the GitHub repo `index.html`) before changing anything. Everything below describes v0.26.
-
-The files in this project are otherwise the latest build. **Start every new chat from these:**
+The files in this project are the latest build (`delve/Index.html` is v0.26.1 — check `GAME_VERSION='0.26.1'`). **Start every new chat from these:**
 
 - `delve/Index.html` — the whole game (HTML/CSS/JS, one file). Same file is `index.html` on GitHub and `Index` in Apps Script. `GAME_VERSION` and the `VERSIONS` changelog live near the "versions" section.
-- `delve/Code.gs` — Apps Script back end (leaderboard, keep, accounts, recordings). Unchanged since v0.23.
-- `delve/Api.gs` — (v0.25) second Apps Script file: `doPost` JSON API so the GitHub site can call the same functions (allow-list `API_ALLOWED`). Unchanged in v0.26.
+- `delve/Code.gs` — Apps Script back end (leaderboard, keep, accounts, recordings). Unchanged since v0.23. Note: its `topRuns()` is capped at `TOP_N = 50` — the page no longer uses it for the board (see `allRuns` below); it's only the fallback and the return value of `submitRun`.
+- `delve/Api.gs` — (v0.25) second Apps Script file: `doPost` JSON API so the GitHub site can call the same functions (allow-list `API_ALLOWED`). v0.26.1 added `allRuns()` — the whole board, every player, no cap.
 - `delve/config.js` — (v0.25) GitHub-only: `window.DELVE_API_URL` (the /exec URL, already filled in) and `window.DELVE_GOOGLE_CLIENT_ID`. Updates to the game never overwrite it.
 - `delve/manifest.webmanifest` — PWA manifest.
 
-To pick up work: `project_read` the files, make changes, test, deliver, then `project_write` back (replace in place) and update this README. (Large files: project_write needs the file read in full first — not practical for the 1.2 MB game; ask Beau to upload it to the project instead.)
+To pick up work: `project_read` the files, make changes, test, deliver, then `project_write` back (replace in place) and update this README. (Large files: `project_read` of the 1.2 MB game lands in a local temp file; `cp` it into the working directory, edit/test there, and `project_write` with `local_path` — that worked on 16 Nov. If it's ever refused, ask Beau to upload the file to the project instead.)
 
 ## Hosting (v0.25)
 - **Main home: GitHub Pages.** Repo https://github.com/beaustapley-ai/delve (personal, beaustapley@hotmail.com). Game: https://beaustapley-ai.github.io/delve/
   - Repo root: `index.html`, `config.js`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `music/album1…album5/*.mp3` (Beau uploads songs himself).
   - To update: upload the new `index.html` only (config.js stays).
 - **Back end: Apps Script** on the personal account — `Code.gs`, `Api.gs`, HTML file `Index`. Deployment: Execute as Me, access **Anyone**. Sheet `16TZ_HZ0aMCk-kCZYvbEhEDOj1tN2vF84WASOHxgCjQQ` (tabs Leaderboard, Saves, Accounts, Replays).
-- Claude can read the repo through the built-in browser pane (github.com and beaustapley-ai.github.io allowed), not from the cloud sandbox. Claude can't push — Beau uploads.
+- Claude can read the repo through the built-in browser pane (github.com and beaustapley-ai.github.io allowed), not from the cloud sandbox. Claude can't push — Beau uploads. The cloud sandbox can't reach script.google.com either (proxy refuses), so the live board can't be queried from there.
 
 ## Working agreement
 - Beau sends lists of playtest feedback; implement every item, test, then deliver.
 - Deliver built files as attachments. **No published artifact.**
 - Say which files changed and remind him: upload index.html to GitHub; paste into Apps Script + New version if back end changed.
 - Bump `GAME_VERSION` and add a dated `VERSIONS` entry each round.
+
+## Leaderboard rule (Beau, 16 Nov 2026)
+**Every run by every player is fetched and visible to everyone.** Never filter or hide board entries by player or account. The table draws the top `REC_SHOW = 100` rows *in the current sort order* (Beau's call), but the whole board is always fetched so each run's # is its place out of all runs and tab counts are right; sorting by another column (Player, When…) reaches every run. (v0.26.1 fixed the top-50 cap that hid lower-scoring players like Zaxaro.)
+- Page: `DELVE_FETCH_BOARD` calls `allRuns` (falls back to `topRuns` if the back end is older). `recordScreen` re-fetches every time it opens (cached rows drawn first, then refreshed, scroll kept). `boardRows` ranks against the full list, draws the first `REC_SHOW`, and adds a "Showing the first 100 of N" note. `mergeRuns` dedupes only on a non-zero `when`, so rows with no time never swallow each other.
 
 ## Code conventions worth knowing
 - Map tiles packed one char per tile via `tileCh`/`chTile`; ids ≥36 use `TILE_EXTRA`.
@@ -51,8 +53,10 @@ To pick up work: `project_read` the files, make changes, test, deliver, then `pr
 
 ## Testing
 Playwright + headless Chromium against `file:///…/Index.html`. v0.26: 24-floor generation sweep (no gate blocks a stair, every secret region has loot), every prayer request under several states, clue/deed/offer paths, all new spells against dummy monsters, FX screenshots mid-flight, see-invisible display, v0.25 save loaded into v0.26, 7-class random bot (shallow and deep) with save/load.
+v0.26.1: stubbed `google.script.run` (addInitScript Proxy) with 152 runs across 4 players — `allRuns` path shows all 152 incl. every low-scoring player and two `when:0` rows; old `topRuns` fallback reproduces the 50-row cap; re-opening the record re-fetches.
 
 ## Recent versions
+- 0.26.1 — leaderboard fetches every run by everyone (server `allRuns` in Api.gs), ranks against all of them, shows top 100 in the current sort; record re-fetches each time it opens.
 - 0.26 — prayer rebuilt (per-run god and hidden wants, clues, needs over asks, anger); 8 new spells; status rings/particles on enemies; drawn shots and impacts; spellbooks every ~3 floors and in shops; FP-draining enemies; see-invisible enemies; gates only guard side areas, unlock/break stone open them; rewards in side rooms and secret areas; item plates.
 - 0.25 — soundtrack; GitHub Pages home + Api.gs; phone layouts; prayer level/HP/gamble; thrown flasks; immunities; invisibility flask; blessed/cursed flasks.
 - 0.24 — levelling rebuilt; trader prices; 30 places; lurkers, new traps; named/chief/dread enemies.
