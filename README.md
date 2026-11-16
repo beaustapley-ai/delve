@@ -1,6 +1,6 @@
-# Delve — handoff notes (current: v0.26.1, 16 Nov 2026)
+# Delve — handoff notes (current: v0.26.2, 16 Nov 2026)
 
-The files in this project are the latest build (`delve/Index.html` is v0.26.1 — check `GAME_VERSION='0.26.1'`). **Start every new chat from these:**
+The files in this project are the latest build (`delve/Index.html` is v0.26.2 — check `GAME_VERSION='0.26.2'`). **Start every new chat from these:**
 
 - `delve/Index.html` — the whole game (HTML/CSS/JS, one file). Same file is `index.html` on GitHub and `Index` in Apps Script. `GAME_VERSION` and the `VERSIONS` changelog live near the "versions" section.
 - `delve/Code.gs` — Apps Script back end (leaderboard, keep, accounts, recordings). Unchanged since v0.23. Note: its `topRuns()` is capped at `TOP_N = 50` — the page no longer uses it for the board (see `allRuns` below); it's only the fallback and the return value of `submitRun`.
@@ -24,6 +24,8 @@ To pick up work: `project_read` the files, make changes, test, deliver, then `pr
 - Bump `GAME_VERSION` and add a dated `VERSIONS` entry each round.
 
 ## Leaderboard rule (Beau, 16 Nov 2026)
+Diagnosis on 16 Nov (via the built-in browser on the GitHub page, calling the /exec API from page JS): the live sheet had 80 runs, newest 13 Nov, none by Zaxaro — but "zaxaro" is an owned account name (listReplays refuses it without a token). His runs never reached the sheet; v0.26.2 sends them up from his browser the next time he opens the game.
+
 **Every run by every player is fetched and visible to everyone.** Never filter or hide board entries by player or account. The table draws the top `REC_SHOW = 100` rows *in the current sort order* (Beau's call), but the whole board is always fetched so each run's # is its place out of all runs and tab counts are right; sorting by another column (Player, When…) reaches every run. (v0.26.1 fixed the top-50 cap that hid lower-scoring players like Zaxaro.)
 - Page: `DELVE_FETCH_BOARD` calls `allRuns` (falls back to `topRuns` if the back end is older). `recordScreen` re-fetches every time it opens (cached rows drawn first, then refreshed, scroll kept). `boardRows` ranks against the full list, draws the first `REC_SHOW`, and adds a "Showing the first 100 of N" note. `mergeRuns` dedupes only on a non-zero `when`, so rows with no time never swallow each other.
 
@@ -53,9 +55,11 @@ To pick up work: `project_read` the files, make changes, test, deliver, then `pr
 
 ## Testing
 Playwright + headless Chromium against `file:///…/Index.html`. v0.26: 24-floor generation sweep (no gate blocks a stair, every secret region has loot), every prayer request under several states, clue/deed/offer paths, all new spells against dummy monsters, FX screenshots mid-flight, see-invisible display, v0.25 save loaded into v0.26, 7-class random bot (shallow and deep) with save/load.
+v0.26.2: local Zaxaro runs missing from a stubbed board are sent on load (an already-shared run with rounded time is not resent); failing submitRun shows the error in the record and retries on reopen.
 v0.26.1: stubbed `google.script.run` (addInitScript Proxy) with 152 runs across 4 players — `allRuns` path shows all 152 incl. every low-scoring player and two `when:0` rows; old `topRuns` fallback reproduces the 50-row cap; re-opening the record re-fetches.
 
 ## Recent versions
+- 0.26.2 — catch-up sync: `syncRunsUp(board)` sends any local `delve.records` the shared board lacks (`runsNotShared`, matched on `when` ±1 s; server dedupes on Run id). Runs 2.5 s after load (bridge block) and whenever the record opens; `DELVE_POST(run, done)` now reports back and stores the last failure in `delve.postErr`; the record shows send failures.
 - 0.26.1 — leaderboard fetches every run by everyone (server `allRuns` in Api.gs), ranks against all of them, shows top 100 in the current sort; record re-fetches each time it opens.
 - 0.26 — prayer rebuilt (per-run god and hidden wants, clues, needs over asks, anger); 8 new spells; status rings/particles on enemies; drawn shots and impacts; spellbooks every ~3 floors and in shops; FP-draining enemies; see-invisible enemies; gates only guard side areas, unlock/break stone open them; rewards in side rooms and secret areas; item plates.
 - 0.25 — soundtrack; GitHub Pages home + Api.gs; phone layouts; prayer level/HP/gamble; thrown flasks; immunities; invisibility flask; blessed/cursed flasks.
