@@ -15,6 +15,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<script>/* brightness, before anything is drawn (Settings → Display) */
+function DELVE_BRIGHT_FILTER(o){var f=[];if(o&&o.lift>0)f.push('contrast('+(1-0.12*o.lift).toFixed(2)+')');
+ if(o&&o.b&&o.b!==1)f.push('brightness('+o.b+')');return f.join(' ');}
+try{(function(){var o=JSON.parse(localStorage.getItem('delve.bright')||'null');var f=DELVE_BRIGHT_FILTER(o);
+ if(f)document.documentElement.style.filter=f;})();}catch(e){}</script>
 <style>
 :root{--ash:#0E0D0C;--stone:#141519;--panel:#1B1D22;--edge:#2A2D34;--bone:#EDE6DA;
  --dust:#837D73;--verd:#6E9280;--blood:#B04A44;--amber:#C89A50;--arcane:#8B7BC8;color-scheme:dark;}
@@ -608,6 +613,9 @@ body.lay-under-tall .under{height:clamp(120px,24vh,260px);}
 .stCtl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin-bottom:8px;}
 .stVolL{font-size:11px;color:var(--dust);display:flex;align-items:center;gap:6px;}
 .stVol{width:140px;accent-color:#C89A50;}
+.brVal{font-size:12px;color:var(--amber);min-width:44px;text-align:right;font-variant-numeric:tabular-nums;}
+.brCtl{display:flex;align-items:center;gap:8px;}.brCtl .stVol{width:170px;}
+.brSwatch{display:flex;gap:3px;margin:10px 0 10px;}.brSwatch i{flex:1;height:18px;border-radius:2px;}
 .stYT{display:block;text-align:center;font-size:12px;color:#E06A60;margin:4px 0 10px;text-decoration:none;letter-spacing:.04em;}
 .stYT:hover{text-decoration:underline;}
 .stList{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px;}
@@ -15764,8 +15772,11 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.26.2';
+var GAME_VERSION='0.26.3';
 var VERSIONS=[
+ {v:'0.26.3',d:'16 Nov 2026',n:[
+  'Brightness: Settings \u2192 Display turns the game itself up (80% to 180%), with quick settings and a Shadows option that lifts the near-black of remembered walls and dark panels. On a phone, leave the screen at its usual brightness and turn the game up here instead \u2014 no more being blinded when you switch to another app. Kept per device.'
+ ]},
  {v:'0.26.2',d:'16 Nov 2026',n:[
   'Runs that never made it to the shared board (a failed send, the page closed too soon) are sent again from the browser they were played in, as soon as the game loads there or the record is opened. If a send fails, the record now says so instead of keeping quiet.'
  ]},
@@ -16265,7 +16276,7 @@ var BTN_INFO={mShoot:['Shoot','fire your ranged weapon or wand, or throw your bl
   mRest:['Rest','rest until healed'],mStairs:['Stairs','take the stair you are on'],mMap:['Map','the map book'],
   mChar:['Me','your character sheet'],mInv:['Pack','the whole pack'],mCodex:['Codex','what you have read'],
   mKeys:['Keys','the controls'],mSave:['Save','save the run'],
-  mSet:['Settings','keys, buttons, layout, sound, account'],mMusic:['Music','the soundtrack: skip, pause, volume']};
+  mSet:['Settings','keys, buttons, layout, brightness, sound, account'],mMusic:['Music','the soundtrack: skip, pause, volume']};
 var BTNS=null;
 function btnNorm(b){
   var o={order:[],hide:[]};
@@ -16474,17 +16485,18 @@ function settingsScreen(tab,back){
   if(setTab==='keys'&&!keyDraft)keyDraft=JSON.parse(JSON.stringify(KEYMAP));
   var body=$('codexBody');body.textContent='';
   var bar=el('div','ctabs');
-  [['keys','Keys'],['buttons','Buttons'],['layout','Layout'],['sound','Sound'],['account','Account']].forEach(function(t){
+  [['keys','Keys'],['buttons','Buttons'],['layout','Layout'],['display','Display'],['sound','Sound'],['account','Account']].forEach(function(t){
     var b=el('button','ctab'+(setTab===t[0]?' on':''),t[1]);
     b.addEventListener('click',function(){keyCapture=null;setTab=t[0];settingsScreen();});
     bar.appendChild(b);
   });
   body.appendChild(bar);
   if(setTab==='keys')keysPane(body);else if(setTab==='buttons')buttonsPane(body);
-  else if(setTab==='layout')layoutPane(body);else if(setTab==='sound')soundPane(body);else accountPane(body);
+  else if(setTab==='layout')layoutPane(body);else if(setTab==='display')displayPane(body);else if(setTab==='sound')soundPane(body);else accountPane(body);
   modal({title:'Settings',flavor:setTab==='keys'?'Click a key to change it, then press the new one. Esc cancels, Backspace clears.':
       setTab==='buttons'?'The row of buttons under the map on a phone or tablet, in the order you want them. Remove the ones you never press.':
       setTab==='layout'?'How the screen is laid out \u2014 mostly for a phone or tablet. Turn the phone sideways and the map takes the full height.':
+      setTab==='display'?'How bright the game is. Turn it up here instead of turning your phone up, so other apps do not blind you when you leave.':
       setTab==='sound'?'The soundtrack is Fall in Seconds \u2014 each book plays its own album.':
       (signedIn()?'Signed in as '+ACCT.email+' \u2014 player '+ACCT.player+'.':'Sign in and your player name, saves and keys follow you to any device.'),
     btn:'Back',go:function(){keyCapture=null;keyDraft=null;closeUI();if(setBack)setBack();else if(P&&P.cl&&!over)paint();else titleScreen();},noClose:1});
@@ -19670,6 +19682,57 @@ function soundPane(body){
   body.appendChild(wrap);
 }
 
+
+/* ═══════════════ v0.26.3 — brightness ═══════════════
+   Settings → Display. The game is mostly dark stone, so on a phone people
+   turned the whole screen up to read it and were blinded by the next app.
+   This brightens the game itself instead. Kept per browser (a phone and a
+   desktop want different things), not on the account. */
+var BRIGHT_DEF={b:1,lift:0};
+var BRIGHT=(function(){var o=null;try{o=JSON.parse(localStorage.getItem('delve.bright')||'null');}catch(e){}
+  var r={b:1,lift:0};if(o){if(typeof o.b==='number'&&o.b>=0.7&&o.b<=2)r.b=o.b;if(o.lift===1||o.lift===2)r.lift=o.lift;}return r;})();
+function brightApply(){var f=DELVE_BRIGHT_FILTER(BRIGHT);document.documentElement.style.filter=f||'';}
+function brightSave(){try{if(BRIGHT.b===1&&!BRIGHT.lift)localStorage.removeItem('delve.bright');
+  else localStorage.setItem('delve.bright',JSON.stringify(BRIGHT));}catch(e){}brightApply();}
+function displayPane(body){
+  var wrap=el('div','layPane');
+  var row=el('div','layRow');var nm=el('div','layName');nm.appendChild(el('b','','Brightness'));
+  nm.appendChild(el('i','','text, the map and everything on it'));row.appendChild(nm);
+  var sl=el('input','stVol');sl.type='range';sl.min='0.8';sl.max='1.8';sl.step='0.05';sl.value=String(BRIGHT.b);
+  sl.setAttribute('aria-label','Brightness');
+  var val=el('span','brVal',Math.round(BRIGHT.b*100)+'%');
+  sl.addEventListener('input',function(){BRIGHT.b=Math.round(+sl.value*100)/100;val.textContent=Math.round(BRIGHT.b*100)+'%';brightSave();});
+  var ctl=el('div','brCtl');ctl.appendChild(sl);ctl.appendChild(val);row.appendChild(ctl);wrap.appendChild(row);
+  var pr=el('div','layRow');var pn=el('div','layName');pn.appendChild(el('b','','Quick set'));
+  pn.appendChild(el('i','','a start; fine-tune with the slider'));pr.appendChild(pn);
+  var pseg=el('div','laySeg');
+  [[1,'Normal'],[1.25,'Brighter'],[1.5,'Bright'],[1.75,'Brightest']].forEach(function(o){
+    var b=el('button',BRIGHT.b===o[0]?'on':'',o[1]);b.type='button';
+    b.addEventListener('click',function(){BRIGHT.b=o[0];sl.value=String(o[0]);val.textContent=Math.round(o[0]*100)+'%';brightSave();
+      [].forEach.call(pseg.children,function(c){c.className='';});b.className='on';});
+    pseg.appendChild(b);});
+  sl.addEventListener('input',function(){[].forEach.call(pseg.children,function(c,i){c.className=[1,1.25,1.5,1.75][i]===BRIGHT.b?'on':'';});});
+  pr.appendChild(pseg);wrap.appendChild(pr);
+  var lr=el('div','layRow');var ln=el('div','layName');ln.appendChild(el('b','','Shadows'));
+  ln.appendChild(el('i','','lift the near-black \u2014 walls you remember, unlit floor, dark panels'));lr.appendChild(ln);
+  var lseg=el('div','laySeg');
+  [[0,'Off'],[1,'A little'],[2,'More']].forEach(function(o){
+    var b=el('button',BRIGHT.lift===o[0]?'on':'',o[1]);b.type='button';
+    b.addEventListener('click',function(){BRIGHT.lift=o[0];brightSave();[].forEach.call(lseg.children,function(c){c.className='';});b.className='on';});
+    lseg.appendChild(b);});
+  lr.appendChild(lseg);wrap.appendChild(lr);
+  /* a strip from the darkest stone to the brightest text, to judge by */
+  var sw=el('div','brSwatch');
+  ['#0E0D0C','#141519','#1B1D22','#2A2D34','#3A352E','#837D73','#6E9280','#B04A44','#C89A50','#8B7BC8','#EDE6DA'].forEach(function(c){
+    var i=el('i');i.style.background=c;sw.appendChild(i);});
+  wrap.appendChild(sw);
+  var acts=el('div','kbActs');
+  var def=el('button','icBtn','Set to defaults');
+  def.addEventListener('click',function(){BRIGHT={b:1,lift:0};brightSave();settingsScreen();});
+  acts.appendChild(def);wrap.appendChild(acts);
+  wrap.appendChild(el('p','legendNote','Kept on this device only, so a phone and a computer can each have their own. Tip: set your phone to the brightness you use for everything else, then turn the game up here until it is easy to read.'));
+  body.appendChild(wrap);
+}
 
 /* ═══════════════ v0.26 — what can see you when nothing should ═══════════════
    Deeper down, more of what lives there sees the hidden. A thing that sees
