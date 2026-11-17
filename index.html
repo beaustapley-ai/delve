@@ -1665,7 +1665,27 @@ var SUPPLY=[
  {id:'marrow',n:'a pot of bone marrow',food:500,eff:'hale',rare:1},
  {id:'deepspring',n:'a flask of deep spring water',drink:720,eff:'deepen',rare:1},
  /* v0.24: the key to a floor's locked stairwell, good on that floor only */
- {id:'stairkey',n:'a stairwell key',skey:1,plain:1}
+ {id:'stairkey',n:'a stairwell key',skey:1,plain:1},
+ /* v0.27 — things that clear the head, and things that cloud it. Appended:
+    a save holds a thing by its place in this list */
+ {id:'lamptea',n:'a cup of lamp-black tea',drink:560,b:0,eff:'focusing'},
+ {id:'smokecake',n:'a smoke-dried oatcake',food:480,b:0,eff:'fogging'},
+ {id:'kelptea',n:'a flask of kelp tea',drink:600,b:1,eff:'bright'},
+ {id:'blackbrine',n:'a cup of black brine',drink:540,b:1,eff:'fogging'},
+ {id:'vigilwafer',n:'a vigil wafer',food:380,b:2,eff:'bright'},
+ {id:'poppywine',n:'a cup of poppy wine',drink:580,food:100,b:2,eff:'emptying'},
+ {id:'bitternut',n:'a handful of bitter nuts',food:360,b:3,eff:'focusing'},
+ {id:'mosswine',n:'a flask of moss wine',drink:560,b:3,eff:'fogging'},
+ {id:'inkbread',n:'a slice of ink-dark bread',food:520,b:4,eff:'bright'},
+ {id:'stilldraught',n:'a cup of the stilling draught',drink:600,b:4,eff:'emptying'},
+ {id:'strongtea',n:'a flask of strong black tea',drink:520,eff:'focusing'},
+ {id:'chewleaf',n:'a twist of chewing-leaf',food:300,eff:'bright'},
+ {id:'brownale',n:'a jug of thick brown ale',drink:520,food:140,eff:'fogging'},
+ {id:'sleepcake',n:'a heavy honeyed sleep-cake',food:500,eff:'emptying'},
+ {id:'clearspring',n:'a flask of clear-spring water',drink:680,eff:'brimming',rare:1},
+ /* v0.27.1 — never found by chance: an errand's object, and a vault's key */
+ {id:'errand',n:'something you were sent for',errand:1,plain:1},
+ {id:'vaultkey',n:'a vault key',vkey:1,plain:1}
 ];
 
 /* What a thing does besides filling you. `sev` scales the size of it with the
@@ -1697,6 +1717,14 @@ var PROV_EFF={
    go:function(d){P.def+=1;return '+1 defence, for good';}},
  hale:{n:'fortifying',t:'makes more of you, for good',good:1,
    go:function(d){var g=3+Math.floor(d/6);P.maxHp+=g;P.hp+=g;return '+'+g+' maximum health, for good';}},
+ bright:{n:'brightening',t:'clears your head — a good deal of FP back',good:1,
+   go:function(d){var f=Math.min(P.focMax-P.foc,5+Math.floor(d/3));P.foc+=f;return f?'+'+f+' focus':'your head is as clear as it gets';}},
+ brimming:{n:'brimming',t:'fills your FP to the top',good:1,
+   go:function(d){var f=P.focMax-P.foc;P.foc=P.focMax;return f?'+'+f+' focus, full':'already full';}},
+ fogging:{n:'fogging',t:'clouds your head and takes FP',good:0,
+   go:function(d){var f=Math.min(P.foc,4+Math.floor(d/4));P.foc-=f;P.muddle=(P.muddle||0)+3;return '−'+f+' focus, and a little muddled';}},
+ emptying:{n:'emptying',t:'empties your FP entirely',good:0,
+   go:function(d){var f=P.foc;P.foc=0;return f?'−'+f+' focus — all of it':'there was nothing in your head to lose';}},
  deepen:{n:'deepening',t:'widens what you can hold in your head, for good',good:1,
    go:function(d){P.focMax+=1;P.foc+=1;return '+1 maximum FP, for good';}},
  warm:{n:'warming',t:'does very little, pleasantly',good:1,
@@ -1729,12 +1757,14 @@ var PROV_EFF={
 };
 
 /* how a thing looks before you have had one — shuffled fresh every run */
-var FOOD_LOOKS=['a wrapped','a waxed','a blackened','a pale','a dense','a crumbling',
+var FOOD_LOOKS=['a twine-bound','a leaf-wrapped','a cloth-tied','a flattened','a scorched','a seeded',
+ 'a wrapped','a waxed','a blackened','a pale','a dense','a crumbling',
  'a sweet-smelling','a greasy','a dry','a wet','a pressed','a speckled','a fibrous',
  'a salted','a grey','a ruddy','a sour','a stringy','a soft','a hard','a glistening',
  'a dusty','a honeyed','a smoked','a mottled','a lean','a marbled','a bitter-smelling',
  'a pale green','a rust-coloured','a translucent','a knotted'];
-var DRINK_LOOKS=['a clouded','a clear','a dark','a thin','a syrupy','a sharp-smelling',
+var DRINK_LOOKS=['a steaming','a greenish','an amber','a frothing','a bitter-black','a sweet-sour','an oily','a peaty',
+ 'a clouded','a clear','a dark','a thin','a syrupy','a sharp-smelling',
  'a flat','a fizzing','a brackish','a sweet','a bitter','a warm','a cold','a milky',
  'a copper-coloured','a black','a pale','a resinous','a smoky','a sour'];
 
@@ -1944,6 +1974,12 @@ var GODS=[
 var NPCS=[
 /* shop: what their stock is drawn from — 'general', 'food', 'paper', 'iron', 'relic'.
    temper decides whether they stand and fight. move 0 means they stay where they are. */
+
+/* v0.27.1: someone who went down ahead of somebody else — placed by a rescue, never by chance */
+{role:'strayed',g:'@',c:'#C8D890',n:'someone who went down',floors:[99,99],
+ hp:34,at:6,df:2,temper:'flees',move:1,
+ fall:'They go down, a long way from the stair they were trying to reach.',
+ tree:{start:{say:'"Are you going up?"',opts:[]}}},
 
 {role:'waykeeper',g:'$',c:'#F0D890',n:'the Waykeeper',floors:[99,99],
  hp:200,at:20,df:12,temper:'flees',move:0,shop:'general',
@@ -2653,12 +2689,12 @@ var CLASSES=[
  hand:['blade','bow'],poor:['heavy','reach'],
  t:'Two knives, quick hands, and the sense to use them on things that have not seen you yet.',
  lit:60,hp:46,atk:7,def:4,sight:8,foc:11,ammo:14,gold:90,god:'count',w:'a pair of knives',ar:'cloth wrap',
- a1:{n:'Vanish',c:3,t:'everything loses you for six turns'},
+ a1:{n:'Vanish',c:5,t:'everything loses you for four turns'},
  a2:{n:'Cheap Shot',c:3,t:'grit in the eyes, and the knife where it cannot see'},
  branches:['Shadow','Knife','Thief'],
  skills:[
   {n:'Backstabber',br:0,lv:1,t:'Strikes on the unaware do 3.2\u00d7 instead of 2.2\u00d7.',ap:function(){P.sk.back=3.2;}},
-  {n:'Second Shadow',br:0,lv:3,req:'Backstabber',t:'Vanish lasts twelve turns and heals a tenth of your health (at least 10).',ap:function(){P.sk.vanish=12;}},
+  {n:'Second Shadow',br:0,lv:3,req:'Backstabber',t:'Vanish lasts ten turns and heals a tenth of your health (at least 10).',ap:function(){P.sk.vanish=10;}},
   {n:'Slip Away',br:0,lv:5,req:'Second Shadow',t:'One blow in five that would land on you finds nothing there.',ap:function(){P.sk.dodge=(P.sk.dodge||0)+0.2;}},
   {n:'Assassin',br:0,lv:8,req:'Slip Away',t:'Kill something that had not seen you, and everything within six paces loses you for three turns.',ap:function(){P.sk.assassin=1;}},
   {n:'Knife Work',br:1,lv:1,t:'+10% chance of a critical hit.',ap:function(){P.sk.crit=(P.sk.crit||0)+0.10;}},
@@ -2694,9 +2730,9 @@ var CLASSES=[
 
 {id:'idiot',n:'Village Idiot',tag:'no trade, no training, no quit',
  hand:['heavy','blade'],poor:['bow','staff'],
- t:'A club somebody left in a ditch, no coat and no trade. What you have is time and a willingness to keep walking.',
+ t:'A club somebody left in a ditch, no coat and no trade. What you have is time, a willingness to keep walking, and dumb luck: one find in twenty comes out a step rarer.',
  lit:18,hp:15,atk:5,def:0,sight:7,foc:4,ammo:0,gold:8,god:'rule',w:'a club',ar:null,
- slowXp:1.7,
+ slowXp:1.7,luck:0.05,
  a1:{n:'Keep Going',c:1,t:'shrug off two turns of whatever is working on you'},
  a2:{n:'Sit Down',c:1,t:'stop where you are and get a little of yourself back'},
  branches:['Grit','Luck','Learning'],
@@ -3117,7 +3153,7 @@ var ROOM_USE={
   go:function(){
     var n=0;
     for(var y=1;y<MAP_H-1;y++)for(var x=1;x<MAP_W-1;x++)
-      if(map[y][x]===T_LOCKED){map[y][x]=T_DOOR;n++;}
+      if(map[y][x]===T_LOCKED&&!isVaultDoor(x,y)){map[y][x]=T_DOOR;n++;}
     if(n){say('Something a long way off lets go, and goes on letting go. '+
       n+' lock'+(n>1?'s':'')+' on this floor open.','good');}
     else if(chance(50)){wakeFloor('Something a long way off starts up, and everything on this floor hears it.');}
@@ -3676,6 +3712,7 @@ function itemName(rec){
       /* a set of picks is a set, and a handful of wedges is a handful */
       if(S.pick)return S.n+' ('+pickCount(rec)+')';
       if(S.trip||S.dart)return S.n+' ('+wedgeCount(rec)+')';
+      if(S.errand||S.vkey)return rec.en||S.n;
       /* tools keep their plain names; what you swallow does not, until you have */
       if(S.plain||known['f'+rec.i])return S.n;
       return (fLook[rec.i]||'an unmarked')+(supplyKind(S)==='drink'?' flask':' parcel');
@@ -3759,8 +3796,14 @@ function potionFor(d){
 
 function rollRarity(d){
   var t=tierOf(d),acc=0,r=Math.random()*100;
-  for(var i=0;i<RARITY.length;i++){acc+=RARITY[i].chance[t];if(r<acc)return i;}
-  return 0;
+  for(var i=0;i<RARITY.length;i++){acc+=RARITY[i].chance[t];if(r<acc)return dumbLuck(i);}
+  return dumbLuck(0);
+}
+/* v0.27: the Village Idiot's dumb luck — one find in twenty comes out a step
+   rarer than it had any right to */
+function dumbLuck(i){
+  if(P&&P.cl&&P.cl.luck&&i<RARITY.length-1&&Math.random()<P.cl.luck)return i+1;
+  return i;
 }
 /* the bigger bags are deeper finds */
 /* which spell a working copy holds — the heavy ones only turn up deeper */
@@ -3810,9 +3853,11 @@ function temper(rec,d){
 /* the uniques found lying about; the trophies only ever come off their owners */
 function randUnique(){var pool=[];UNIQUES.forEach(function(u,i){if(!u.trophy)pool.push(i);});return pool[rnd(pool.length)];}
 function makeItem(d){return temper(makeItem0(d),d);}
+/* v0.27.1: a third fewer arrows lying about */
+function arrowsN(n){return Math.max(1,Math.round(n*2/3));}
 function makeItem0(d){
   /* somebody who shoots finds arrows more often, and more of them */
-  if(usesBow()&&chance(7))return {t:'ammo',amt:5+rnd(6+Math.round(d/2))};
+  if(usesBow()&&chance(7))return {t:'ammo',amt:arrowsN(5+rnd(6+Math.round(d/2)))};
   var r=Math.random();
   if(r<0.012&&d>=7)return maybeCurse({t:'unique',i:randUnique()},d);
   if(r<0.16)return {t:'potion',i:potionFor(d)};
@@ -3822,7 +3867,7 @@ function makeItem0(d){
      arithmetic rather than by anything in it. */
   if(r<0.40)return rations(d);
   if(r<0.48)return {t:'gold',amt:coin(3+rnd(5+Math.round(d*1.4)))};
-  if(r<0.56)return chance(50)?{t:'ammo',amt:2+rnd(3+Math.round(d/3))+(chance(18)?rnd(12):0)}:rations(d);
+  if(r<0.56)return chance(50)?{t:'ammo',amt:arrowsN(2+rnd(3+Math.round(d/3))+(chance(18)?rnd(12):0))}:rations(d);
   if(r<0.585)return {t:'book',i:bookSpell(d)};
   if(r<0.615){var wi=wandFor(d);
     return {t:'wand',i:wi,ch:WANDS[wi].lo+rnd(WANDS[wi].hi-WANDS[wi].lo+1)};}
@@ -4552,11 +4597,17 @@ function genLevel(d){
         npcs.push(newNpc(who2,mate.x,mate.y,d));}
     }
   }
-  /* and, now and then, one person willing to trade */
-  if(sellers.length&&chance(d>=4?15:8)){
+  /* and, now and then, one person willing to trade. v0.27: never more than
+     four or five floors without one (the run decides which), and some runs
+     the traders band together into a market — two or three in one room */
+  var MK=marketPlan();
+  var forceShop=!!(P&&(P.shopD===d||d-(P.shopD||0)>=MK.gap));
+  if(sellers.length&&(forceShop||chance(d>=4?15:8))){
     var ss=farSpot();
     if(ss){
-      npcs.push(newNpc(sellers[rnd(sellers.length)],ss.x,ss.y,d));
+      var first=sellers[rnd(sellers.length)];
+      npcs.push(newNpc(first,ss.x,ss.y,d));
+      if(P)P.shopD=d;
       var shopR=roomAt(ss.x,ss.y);
       makeShopRoom(shopR,d);
       /* A shop with a door that shuts is the one safe room on the floor, and
@@ -4564,6 +4615,14 @@ function genLevel(d){
          the trader, and nothing that lives here will come through that door. */
       if(shopR){
         shopR.safe=1;
+        var more=chance(MK.odds)?(1+(chance(MK.odds)?1:0)):0;
+        var others=sellers.filter(function(r){return r.role!==first.role;});
+        for(var mi=0;mi<more&&others.length;mi++){
+          var mq=inRoom(shopR);if(!mq)break;
+          var who4=others.splice(rnd(others.length),1)[0];
+          npcs.push(newNpc(who4,mq.x,mq.y,d));
+          shopR.market=1;
+        }
         var guests=chance(50)?1+(chance(35)?1:0):0;
         for(var gi=0;gi<guests&&plain.length;gi++){
           var gq=inRoom(shopR);
@@ -4589,7 +4648,7 @@ function genLevel(d){
     if(safeR&&chance(45)){var tq=inRoom(safeR);if(tq&&!npcs.some(function(z){return z.x===tq.x&&z.y===tq.y;}))ts=tq;}
     if(ts){
       var T=tOk[rnd(tOk.length)];met['t:'+T.id]=1;
-      npcs.push({role:T.role,teller:T.id,x:ts.x,y:ts.y,stock:null,
+      npcs.push({role:T.role,teller:T.id,x:ts.x,y:ts.y,stock:null,found:0,
         told:0,pending:null,seen:{},gave:{},done:0});
     }
   }
@@ -4657,6 +4716,16 @@ function genLevel(d){
   shapeFloor(d);
   peopleFloor(d);
   floorExtras26(d);
+  floorExtras27(d);
+}
+/* v0.27.1: people with something to ask, a sealed vault, and whatever an
+   errand or a vault key needs put down on this floor */
+function floorExtras27(d){
+  if(!P)return;
+  npcs.forEach(function(n){if(n.found===undefined)n.found=0;if(JOB_ROLES[n.role]&&n.offer===undefined)n.offer=chance(55)?1:0;});
+  makeVault(d);
+  placeVaultKeys(d);
+  placeJobs(d);
 }
 /* ═══════════════ dig sites ═══════════════
    Somewhere the rock is hollow, and the wall in front of it is cracked so you
@@ -4805,7 +4874,7 @@ function stockLocked(d){
         WEAPONS.forEach(function(W,k){if(W.k===WEAPONS[wi].k&&W.at>WEAPONS[wi].at&&chance(60))wi=k;});
         put(temper({t:'weapon',i:wi,r:rar},d+3));
       } else put(temper({t:'armor',i:Math.min(ARMORS.length-1,1+rnd(ARMORS.length-1)),r:rar},d+3));
-      if(chance(40))put({t:'ammo',amt:8+rnd(8)});
+      if(chance(40))put({t:'ammo',amt:arrowsN(8+rnd(8))});
     }
   });
 }
@@ -5380,7 +5449,7 @@ function landingSpot(){
 function newNpc(role,x,y,d){
   return {role:role.role,x:x,y:y,
     stock:role.shop?makeStock(d,role.shop):null,
-    told:0,pending:null,seen:{},gave:{},done:0};
+    told:0,pending:null,seen:{},gave:{},done:0,found:0};
 }
 
 var MON_HP_K=0.08,MON_AT_K=0.085;
@@ -5608,6 +5677,13 @@ function shapeRoom(r){
    with a trader in it is swept: nothing awake, nothing underfoot, and a door
    on the way in. Which is exactly the shape a thing that copies furniture
    would choose to sit in, and now and then one has. */
+/* v0.27: how this run's traders behave — the longest stretch without one
+   (four floors or five), and how often they keep company in a market */
+function marketPlan(){
+  if(!P)return {gap:5,odds:25};
+  if(!P.mkt)P.mkt={gap:4+rnd(2),odds:12+rnd(40)};
+  return P.mkt;
+}
 function makeShopRoom(r,d){
   if(!r)return;
   r.shop=1;
@@ -5845,13 +5921,13 @@ function supplyOf(test,d){
   var bd=(d===undefined)?band(depth||1):band(d);
   var pool=[];
   SUPPLY.forEach(function(S,i){
-    if(S.skey||!test(S))return;
+    if(S.skey||S.errand||S.vkey||!test(S))return;
     var w=(S.b===undefined)?2:(S.b===bd?6:1);
     /* the ones that leave something in you for good are the rare finds */
     if(S.rare)w=(S.b===undefined)?1:(S.b===bd?2:0);
     for(var k=0;k<w;k++)pool.push(i);
   });
-  if(!pool.length)SUPPLY.forEach(function(S,i){if(!S.skey&&test(S))pool.push(i);});
+  if(!pool.length)SUPPLY.forEach(function(S,i){if(!S.skey&&!S.errand&&!S.vkey&&test(S))pool.push(i);});
   return {t:'supply',i:pool[rnd(pool.length)]};
 }
 function stockItem(kind,d){
@@ -6045,6 +6121,7 @@ function worthValue(it){
     case 'supply':{
       var S=SUPPLY[it.i];
       if(S.skey)return 5;
+      if(S.errand||S.vkey)return 1;
       if(S.key)return 200;
       if(S.pick)return 170;
       if(S.holy)return 260;
@@ -6214,6 +6291,9 @@ var SCORE_PARTS=[
  {k:'leaves', n:'Codex leaves read',        per:70},
  {k:'tales',  n:'Tellings heard',           per:120},
  {k:'rituals',n:'Rituals taken',            per:160},
+ {k:'jobs',   n:'Promises kept',            per:150, why:'errands run and people brought back'},
+ {k:'vaults', n:'Vaults opened',            per:100},
+ {k:'quick',  n:'Floors left in good time', per:60},
  {k:'turns',  n:'Turns taken',              per:-0.05,why:'fewer is better',show:'\u22121 per 20 turns'},
  {k:'dmg',    n:'Damage taken',             per:-0.3, why:'less is better',show:'\u22123 per 10 damage'}
 ];
@@ -6285,7 +6365,7 @@ function runRecord(how,won){
     how:how,won:won?1:0,when:Date.now()};
   var S=runStats();
   S.fl[depth]=1;
-  r.fls=Object.keys(S.fl).length;r.ex=S.ex||0;r.dmg=Math.round(S.dmg||0);r.dis=S.dis||0;
+  r.fls=Object.keys(S.fl).length;r.ex=S.ex||0;r.dmg=Math.round(S.dmg||0);r.dis=S.dis||0;r.jobs=S.jobs||0;r.vaults=S.vaults||0;r.quick=S.quick||0;
   r.looted=S.loot||0;r.used=S.used||0;r.sold=S.sold||0;
   r.items=P.carry.length+[P.wep,P.off,P.arm,P.ring,P.bag].filter(function(x){return x;}).length;
   r.sv=2;
@@ -6631,6 +6711,10 @@ function landingAt(list,idx){
   return list[Math.min(idx,list.length-1)];
 }
 function enterLevel(d,how,idx){
+  /* v0.27.1: whoever is following close behind takes the stair with you */
+  var from=depth,fol=[];
+  if(how!=='fall'&&depth&&npcs&&P)fol=npcs.filter(function(n){return n.follow&&Math.max(Math.abs(n.x-P.x),Math.abs(n.y-P.y))<=2;});
+  if(fol.length)npcs=npcs.filter(function(n){return fol.indexOf(n)<0;});
   /* walked before, or only ever read about on a chart */
   var walked=!!runStats().fl[d]&&!(d===1&&turns===0);
   runStats().fl[d]=1;
@@ -6651,6 +6735,11 @@ function enterLevel(d,how,idx){
   fov();announce(fresh,how);
   if(!walked)announceRules();
   else if(FL&&FL.lock&&!FL.lock.open)say('The stairwell down is still locked.','warn');
+  fol.forEach(function(n){var q=nearFree27(P.x,P.y,1)||nearFree27(P.x,P.y,2)||{x:P.x,y:P.y};n.x=q.x;n.y=q.y;npcs.push(n);
+    say(npcName(n)+' comes '+(how==='up'?'up':'down')+' the stair behind you.','good');});
+  if(fol.length)escortArrive();
+  if(fresh)quickStart(d);
+  if(how==='down'&&from===d-1)quickCheck(from);
 }
 function nearestOf(list){return (list&&list.length)?list[rnd(list.length)]:null;}
 
@@ -6698,6 +6787,7 @@ function fov(){
     ray(P.x,P.y,P.x+dx,P.y+dy);
   }
   vis[P.y][P.x]=true;seen[P.y][P.x]=true;
+  if(npcs)npcs.forEach(function(n){if(vis[n.y]&&vis[n.y][n.x])n.found=1;});
   /* a trained eye catches some of what it passes — some of it, on a roll */
   if(typeof passiveNotice==='function')passiveNotice();
 }
@@ -7198,6 +7288,7 @@ function slay(m){
     mons.forEach(function(e){
       if(e===m||e.watcher||e.gone)return;
       if(Math.abs(e.x-m.x)+Math.abs(e.y-m.y)>1)return;
+      if(monImmune(e,'burn'))return;
       var bd2=3+Math.floor(depth/2);e.hp-=bd2;e.bled=1;e.awake=1;lit++;
       if(e.hp<=0)caught.push(e);
     });
@@ -7273,7 +7364,7 @@ function slay(m){
   if(chance(dropOdds)){var it=makeItem(depth+(m.boss?6:0));it.x=m.x;it.y=m.y;loot.push(it);}
   if(chance(m.boss?100:26))loot.push({t:'gold',amt:coin((m.boss?90:3)+rnd(6+depth*2)),x:m.x,y:m.y});
   /* and the odd arrow still in it, or on it */
-  if(usesBow()&&chance(11))loot.push({t:'ammo',amt:1+rnd(3),x:m.x,y:m.y});
+  if(usesBow()&&chance(7))loot.push({t:'ammo',amt:1+rnd(3),x:m.x,y:m.y});
   if(m.stole){loot.push({t:'gold',amt:m.stole,x:m.x,y:m.y});}
 
   gainXp(m.xp);
@@ -7528,6 +7619,13 @@ function flyTo0(tx,ty,dmg,verb,hold,pierce,rider){
       if(FLY_KIND)say('It goes into the '+lurkMedium(m)+' and finds nothing.','warn');
       return hits>0;}
     if(m&&m.illusion){popIllusion(m);hits++;FLY_TRACE.hits.push({x:x,y:y});FLY_TRACE.end='mon';if(!pierce)return true;continue;}
+    /* v0.27: fire does nothing to a thing that cannot burn, and venom nothing
+       to a thing poison cannot touch — the hit, the rider, all of it */
+    var el=flyElem(rider);
+    if(m&&el&&monImmune(m,el)){
+      m.awake=1;hits++;FLY_TRACE.hits.push({x:x,y:y});FLY_TRACE.end='mon';
+      immuneHit(m,el);
+      if(!pierce)return true;continue;}
     if(m){
       var d=Math.max(1,dmg-Math.floor(m.def/2));
       if(FLY_KIND==='arrow')d=Math.round(d*fightMul()*(1+(P.sk.shotMul||0)));
@@ -7812,7 +7910,7 @@ function castSpell0(id,dx,dy){
       var dr=null;
       for(var ky=-1;ky<=1&&!dr;ky++)for(var kx=-1;kx<=1;kx++){
         var tt=map[P.y+ky]&&map[P.y+ky][P.x+kx];
-        if(tt===T_LOCKED||tt===T_WARD||tt===T_DOOR){dr=[P.x+kx,P.y+ky];break;}
+        if((tt===T_LOCKED||tt===T_WARD||tt===T_DOOR)&&!isVaultDoor(P.x+kx,P.y+ky)){dr=[P.x+kx,P.y+ky];break;}
       }
       if(!dr)return say('Nothing locked within reach.','warn');
       map[dr[1]][dr[0]]=T_OPEN;say('The lock gives up.','good');break;}
@@ -7827,6 +7925,7 @@ function castSpell0(id,dx,dy){
         if(unbreakable(sx,sy)){hard2++;break;}
         if(map[sy][sx]===T_GATE){map[sy][sx]=T_FLOOR;n2++;gates=gates.filter(function(e){return !(e.x===sx&&e.y===sy);});
           say('The gate comes apart with the stone.','good');continue;}
+        if(isVaultDoor(sx,sy))break;
         if(map[sy][sx]===T_WALL||map[sy][sx]===T_HIDDEN||map[sy][sx]===T_LOCKED||map[sy][sx]===T_CRACK){map[sy][sx]=T_FLOOR;n2++;}
       }
       say(n2?'Stone comes apart in a line. '+n2+' of it.':'Nothing in the way to break.','deep');
@@ -8076,6 +8175,11 @@ function identifiable(rec){
   return false;
 }
 function learnItem(rec){
+  if(rec.t==='supply'){
+    var Sl=SUPPLY[rec.i],look=(fLook[rec.i]||'unmarked')+(supplyKind(Sl)==='drink'?' flask':' parcel');
+    known['f'+rec.i]=1;
+    var El=Sl.eff&&PROV_EFF[Sl.eff];
+    return 'The '+look.replace(/^(a|an) /,'')+' is '+Sl.n+' — '+(El?El.n+': it '+El.t:'nothing in it but the filling')+'.';}
   if(rec.t==='potion'){known['p'+rec.i]=1;
     return 'The '+pLook[rec.i]+' flask is '+potEffect(rec.i).n+' — it '+potEffect(rec.i).t+'.';}
   if(rec.t==='ring'){known['r'+rec.i]=1;
@@ -8208,7 +8312,7 @@ function ability(slot){
       aiming={k:'volley',fp:cost};say('Volley \u2014 one arrow, through three squares. Pick a direction (the three squares out from you) or click a square (it and the two behind it).','warn');return 'aim';
     case 'lamplighter1':aiming={k:'ember',fp:cost};say('Emberbolt — which way?','warn');return 'aim';
     case 'lamplighter2':P.ward+=24+(P.sk.ward||0);say('A ward settles over you.','good');break;
-    case 'cutpurse1':{var n=P.sk.vanish||6;
+    case 'cutpurse1':{var n=P.sk.vanish?Math.min(P.sk.vanish,10):4;
       mons.forEach(function(m){m.awake=0;m.lost=n;});
       if(P.sk.vanish)P.hp=Math.min(P.maxHp,P.hp+Math.max(10,Math.round(P.maxHp*0.1)));
       say('You step out of the light. Everything loses you.','deep');break;}
@@ -9408,6 +9512,14 @@ function disarm(){
   var near=disarmable();
   if(!near.length)return say('Nothing within reach to take apart. Stand next to it first.','warn');
   var t=near[0],T=TRAPS[t.k];
+  /* one of your own comes back out of the floor without a fight */
+  if(t.mine){
+    t.spent=1;
+    var back={t:'snare',k:t.k,mine:1};
+    if(P.carry.length<packMax()){P.carry.push(back);say('You lift '+TRAPS[t.k].n+' back out of the floor. Yours to set again.','find');}
+    else{back.x=t.x;back.y=t.y;loot.push(back);say('You lift '+TRAPS[t.k].n+' out, but your pack is full — it lies there, harmless, until you have room.','warn');}
+    return endTurn();
+  }
   var picks=P.carry.filter(function(x){return x.t==='supply'&&SUPPLY[x.i].pick;})[0];
   var odds=Math.min(92,42+(P.picklock||0)/2+(picks?22:0)+(P.cls==='cutpurse'?18:0)+
     (P.eye||0)*6+P.lvl*2-T.spot*5);
@@ -9452,6 +9564,7 @@ function describeTile(x,y){
   var lit=vis[y]&&vis[y][x];
   var bits=[];
   if(x===P.x&&y===P.y)bits.push('You.');
+  if(isVaultDoor(x,y))bits.push('A sealed vault door. It wants '+FL.sv.n+', and nothing else will move it.');
   var myMk=P&&P.marks&&P.marks[depth]?markAt(depth,x,y):null;
   if(myMk)bits.push('Your mark '+myMk.g+(myMk.note?': \u201c'+myMk.note+'\u201d':'')+'.');
 
@@ -9583,6 +9696,7 @@ function act(dx,dy){
       if(myJam){clearJam(nx,ny);say('You knock your wedge out and the door gives.','warn');}
       else say('The door gives.','warn');
       map[ny][nx]=T_OPEN;return endTurn();}
+    if(t===T_LOCKED&&isVaultDoor(nx,ny))return vaultDoor(nx,ny);
     if(t===T_LOCKED||t===T_WARD)return tryDoor(nx,ny,t);
     if(t===T_BARRED)return barredDoor(nx,ny);
 
@@ -9654,6 +9768,7 @@ function endTurn(){
   if(ui||over)return paint();
   if(P.sk.wardMind&&P.ward>0){P.held=0;P.muddle=0;P.blind=0;}
   seeInvisTurn();
+  vaultGuard();
   moveMons();
   /* slowed: everything down here gets to move again before you do */
   if(!over&&P.slow>0&&chance(55)){moveMons();}
@@ -9765,15 +9880,21 @@ function arrive(){
     turns++;
   }
 
-  var t=traps.filter(function(x){return x.x===P.x&&x.y===P.y&&!x.spent;})[0];
-  if(t){
+  /* v0.27.2: the traps you set are for what hunts you, never for you */
+  var tlist=traps.filter(function(x){return x.x===P.x&&x.y===P.y&&!x.spent&&!x.mine;});
+  if(tlist.length){
     /* a good eye does not make a trap miss — it gets you most of the way out
        of the way, which is worth rather less and reads rather better */
-    t.spent=1;t.found=1;
+    if(tlist.length>1)say('There is more than one thing set in this floor, and they all go.','hit');
     if(P.sk.trapSoft)say('You half see it coming and throw yourself most of the '+
       'way out of it. It still catches you.','warn');
-    springTrap(t,P.sk.trapSoft||1);
-    if(over)return;
+    var d0=depth;
+    tlist.forEach(function(t){t.spent=1;t.found=1;});
+    for(var ti=0;ti<tlist.length;ti++){
+      if(over||depth!==d0)break;
+      springTrap(tlist[ti],P.sk.trapSoft||1);
+    }
+    if(over||depth!==d0)return;
   }
 
   if(map[P.y][P.x]===T_PIT){
@@ -10333,6 +10454,7 @@ function step(m,dx,dy,K){
   if(K&&K.ghost&&DOORISH[t]){
     m.x=x;m.y=y;
     if(vis[y]&&vis[y][x])say(cap(K.n)+' comes through the door without opening it.','hit');
+    monTraps(m,x,y,K);
     return true;
   }
   if(t===T_GATE)return false;
@@ -10352,7 +10474,7 @@ function step(m,dx,dy,K){
     return false;                    /* opening it took the thing's turn too */
   }
   if(SOLID[t]){
-    if(K&&K.breaks&&chance(50)){map[y][x]=T_FLOOR;say('The wall opens for him.','deep');}
+    if(K&&K.breaks&&chance(50)&&t!==T_HARD&&!isVaultDoor(x,y)){map[y][x]=T_FLOOR;say('The wall opens for him.','deep');}
     else return false;
   }
   if(t===T_PIT&&!(m.lurk==='sky'))return false;
@@ -10366,9 +10488,19 @@ function step(m,dx,dy,K){
      here have lived alongside it long enough to step over it without looking.
      A trap only catches them when YOU lifted it and set it again — that is
      what carrying one about is for. */
-  var tr=traps.filter(function(q){return q.x===x&&q.y===y&&!q.spent&&q.mine;})[0];
-  if(tr)monTrap(m,tr,K);
+  monTraps(m,x,y,K);
   return true;
+}
+/* v0.27.1: every trap you set on one square goes at once, and every one of
+   them is spent — even when the first was already more than enough */
+function monTraps(m,x,y,K){
+  var list=traps.filter(function(q){return q.x===x&&q.y===y&&!q.spent&&q.mine;});
+  if(!list.length)return;
+  if(list.length>1&&inSight(x,y))say(list.length+' traps set in the one place, and they all go at once.','good');
+  list.forEach(function(tr){
+    if(m.gone||m.hp<=0||mons.indexOf(m)<0){tr.spent=1;tr.found=1;return;}
+    monTrap(m,tr,K);});
+  list.forEach(function(tr){tr.spent=1;tr.found=1;});
 }
 function monTrap(m,t,K){
   var T=TRAPS[t.k];
@@ -10377,24 +10509,50 @@ function monTrap(m,t,K){
   t.spent=1;t.found=1;
   var lit=inSight(m.x,m.y);
   var d=Math.round((6+depth*1.4)*1.35*(P.sk.rig?2:1));
+  var also='';
+  /* v0.27: a trap you set does what it does to you — and what a thing is
+     proof against, it is proof against here too */
+  var shrug=function(k,why){
+    if(!monImmune(m,k))return false;
+    m.awake=1;
+    if(lit)say(cap(K.n)+' steps on '+T.n+'. '+why,'warn');
+    else say('Something a little way off steps on something. It does not seem to mind.','warn');
+    return true;};
   switch(T.id){
-    case 'pit':
+    case 'pit':case 'crumble':
+      if(m.boss||m.fin){d=Math.round(d*1.5);m.held=Math.max(m.held||0,3);also=' It drops into the hole and has to climb out.';break;}
       if(m.key)dropStairKey(m);
       mons=mons.filter(function(e){return e!==m;});
-      if(lit)say(cap(K.n)+' goes into the pit and does not come back out.','good');
+      if(lit)say(cap(K.n)+(T.id==='pit'?' goes into the pit and does not come back out.':' goes through the hollow floor and is gone.'),'good');
+      else say('Something a little way off goes through the floor.','warn');
       gainXp(Math.round((m.xp||4)*0.5));
       return;
-    case 'snare':m.held=Math.max(m.held||0,5);
-      if(lit)say(cap(K.n)+' is caught by the leg.','good');return;
+    case 'snare':case 'noose':m.held=Math.max(m.held||0,T.id==='noose'?6:5);
+      if(lit)say(cap(K.n)+(T.id==='noose'?' puts its head through the noose and it pulls tight.':' is caught by the leg.'),'good');
+      if(T.id==='noose'){d=Math.round(d*0.5);break;}
+      return;
+    case 'webshot':m.held=Math.max(m.held||0,6);
+      if(lit)say('The web comes down on '+K.n+'. It cannot move.','good');return;
+    case 'grasp':m.held=Math.max(m.held||0,5);d=Math.round(d*0.4);also=' The roots have it.';break;
     case 'alarm':mons.forEach(function(z){z.awake=1;});
       if(lit)say(cap(K.n)+' sets the rune off. Everything hears it.','warn');return;
-    case 'gas':monPoison(m,10,1);d=Math.round(d*0.5);break;
-    case 'blade':monBleed(m,6,1);break;
+    case 'hush':m.lost=Math.max(m.lost||0,10);m.awake=0;
+      if(lit)say('The quiet closes over '+K.n+'. It stops, and has lost you.','good');return;
+    case 'vent':
+      if(shrug('burn','Fire comes up round it and runs off it like water. It does not burn.'))return;
+      monBurn(m,6,1);also=' It catches.';break;
+    case 'gas':
+      if(shrug('poison','The gas comes up round it and it breathes it in to no effect.'))return;
+      monPoison(m,10,1);d=Math.round(d*0.5);also=' It is poisoned.';break;
+    case 'dart':if(!monImmune(m,'poison'))monPoison(m,4,1);break;
+    case 'blade':if(monBleed(m,6,1))also=' It is bleeding.';break;
     case 'curse':m.lost=Math.max(m.lost||0,8);d=Math.round(d*0.4);break;
     case 'rust':d=Math.round(d*0.4);break;
+    case 'collapse':d=Math.round(d*1.4);m.held=Math.max(m.held||0,1);break;
+    case 'sluice':case 'undertow':m.held=Math.max(m.held||0,2);d=Math.round(d*0.6);also=' The water knocks it off its feet.';break;
   }
   m.hp-=d;m.bled=1;m.awake=1;
-  if(lit)say(cap(K.n)+' steps on '+T.n+'. '+d+'.','good');
+  if(lit)say(cap(K.n)+' steps on '+T.n+'. '+d+'.'+also,'good');
   else say('Something a little way off steps on something, and it goes off.','warn');
   if(m.hp<=0){
     if(lit)say('And that is the end of it.','good');
@@ -10785,6 +10943,7 @@ function pickUp(l){
   return r;
 }
 function pickUp0(l){
+  if(l.t==='supply'&&(l.job||l.vf)&&P.carry.length<packMax())jobPickNote(l);
   if(l.t==='bones')return takeBones(l);
   if(l.t==='cache')return openCache(l);
   if(l.t==='chest')return openChest(l);
@@ -10975,7 +11134,9 @@ function useCarry0(i){
     case 'potion':{P.carry.splice(i,1);known['p'+c.i]=1;drinkFlask(c);break;}
     case 'supply':{var S=SUPPLY[c.i];
       if(S.pick)return say('Picks are for what is locked — stand at it and try the lock.','warn');
-      if(S.skey)return say('The key to this floor\u2019s stairwell. Walk onto the stair down with it in your pack and it will turn.','warn');
+      if(S.skey)return say('The key to this floor’s stairwell. Walk onto the stair down with it in your pack and it will turn.','warn');
+      if(S.vkey)return say(cap(c.en||'the key')+' opens the sealed vault on floor '+c.vf+'. Walk into the vault door with it in your pack.','warn');
+      if(S.errand)return say(cap(describeItem(c,1))+'.','warn');
       if(S.key)return say('A key is for what is locked — stand at it and try the lock.','warn');
       if(S.fix){useStone(i);break;}
       /* darts and trip-stones are for throwing, not eating: using one aims it */
@@ -11126,13 +11287,15 @@ function useCarry0(i){
       break;}
     case 'snare':{
       var TS=TRAPS[c.k];
-      if(traps.some(function(q){return q.x===P.x&&q.y===P.y&&!q.spent;}))
-        return say('There is already something in this floor.','warn');
+      if(traps.some(function(q){return q.x===P.x&&q.y===P.y&&!q.spent&&!q.mine;}))
+        return say('There is already something in this floor, and it is not yours.','warn');
       if(SOLID[map[P.y][P.x]])return say('Nothing to set it in here.','warn');
+      var under=traps.filter(function(q){return q.x===P.x&&q.y===P.y&&!q.spent&&q.mine;}).length;
       P.carry.splice(i,1);
       traps.push({k:c.k,x:P.x,y:P.y,found:1,spent:0,mine:1});
-      say('You work '+TS.n+' back into the floor and step off it. '+
-        'It knows nothing about whose foot is whose.','good');
+      if(under)say('You work '+TS.n+' in with the '+(under===1?'one':under)+' already here. Whatever steps on this square gets all '+(under+1)+' at once — and spends them all.','good');
+      else say('You work '+TS.n+' back into the floor and step off it. '+
+        'It knows your step and lets you by. Anything else that walks here sets it off.','good');
       break;}
     case 'relic':say(cap(OFFERINGS[c.i].n)+' is no use to you. It is for putting down, at a prayer.','warn');return paint();
     case 'ammo':{P.carry.splice(i,1);P.ammo+=(c.amt||5);
@@ -11546,7 +11709,7 @@ function spillChest(c){
     case 'armoury':
       drop(maybeCurse({t:'weapon',i:rnd(WEAPONS.length),r:Math.max(1,rollRarity(d+4))},d));
       drop(maybeCurse({t:'armor',i:rnd(ARMORS.length),r:Math.max(1,rollRarity(d+4))},d));
-      drop({t:'ammo',amt:12+rnd(18)});
+      drop({t:'ammo',amt:arrowsN(12+rnd(18))});
       break;
     default:
       for(i=0;i<4+rnd(3);i++)drop(supplyOf(function(S){return S.food||S.drink||S.cure;}));
@@ -11593,6 +11756,10 @@ function tellerDef(n){
 function talk(n){
   if(!n.seen)n.seen={};
   if(!n.gave)n.gave={};
+  if(jobTalk(n))return;
+  talkBase(n);
+}
+function talkBase(n){
   if(n.wk||n.role==='waykeeper')return waykeeperTalk(n);
   var T=tellerDef(n);
   if(T)return tellerTalk(n,T);
@@ -11743,6 +11910,8 @@ function openShop(n,def){
   /* a shopkeeper with no stock still buys — never assume the shelves exist */
   if(!n.stock)n.stock=makeStock(depth||1,(npcDef2(n)||{}).shop||'general');
   var kindS=(npcDef2(n)||{}).shop||'general';
+  orderReady(n);
+  restock27(n,kindS);
   var back=premiumRestock(n);
   repriceStock(n);
   /* Anything they have on the shelf is on the shelf with a label on it. If you
@@ -11751,11 +11920,13 @@ function openShop(n,def){
   traderTells(n);
   var cards=n.stock.map(function(it,idx){
     var cost=askOf(it);
-    return {t:(it.prem?'★ ':'')+itemName(it)+' — '+cost+'g',s:(it.prem?'kept back · ':'')+describeItem(it,1),dim:P.gold<cost,it:it,
+    return {t:(it.prem?'★ ':'')+itemName(it)+' — '+cost+'g',s:(it.prem?'kept back · ':'')+describeItem(it,0),dim:P.gold<cost,it:it,
       go:function(){
         if(P.gold<cost)return;
         P.gold-=cost;runStats().spent=(runStats().spent||0)+cost;
         var at=n.stock.indexOf(it);if(at>=0)n.stock.splice(at,1);
+        /* you paid for it: they tell you what it is as they hand it over */
+        if(identifiable2(it)&&it.t!=='weapon'&&it.t!=='armor'&&it.t!=='unique')say('"'+learnItem(it)+'"','find');
         if(it.t==='chart'){delete it.price;say('You buy '+itemName(it)+'.','find');useChart(it);}
         else if(P.carry.length<packMax()){P.carry.push(it);say('You buy '+itemName(it)+'.','find');}
         else{it.x=P.x;it.y=P.y;loot.push(it);say('You buy '+itemName(it)+'. It will not fit; it is at your feet.','warn');}
@@ -11768,8 +11939,13 @@ function openShop(n,def){
   if(mends.length)
     cards.push({t:'Have something mended.',s:'they work '+mends.join(' and '),
       go:function(){mendMenu(n,kind);}});
-  if(kind==='paper')
-    cards.push({t:'Have something named.',s:'they will tell you what a thing is, for a price',
+  if(ORDER_WORDS[kind]&&n.role!=='waykeeper'){
+    if(n.order)cards.push({t:'Your order.',s:'ready once you have reached floor '+n.order.at+' and come back here',dim:1});
+    else cards.push({t:'Place a special order.',s:ORDER_WORDS[kind]+' — paid now, ready after you have been two floors deeper',
+      go:function(){orderMenu(n,def,kind);}});
+  }
+  if(NAME_TRADE[kind])
+    cards.push({t:'Have something named.',s:NAME_TRADE[kind].s,
       go:function(){nameMenu(n);}});
   if(kind==='relic'||kind==='paper')
     cards.push({t:'Have a hold taken off.',s:'they say they can, and they may be lying',
@@ -11785,6 +11961,15 @@ function openShop(n,def){
    is how you learn what the unlabelled one in your own pack is — they are the
    same flask, the same ring, the same binding. */
 function traderTells(n){
+  if(!n||!n.stock)return;
+  /* v0.27: a trader's shelf is not labelled for nothing any more. You can see
+     the make of the steel, the same as on the floor; for what is in a flask or
+     a parcel you pay them to tell you, or you buy it and they tell you then. */
+  n.stock.forEach(function(it){
+    if((it.t==='weapon'||it.t==='armor'||it.t==='unique')&&!handled(it))learnGear(it);
+  });
+}
+function traderTellsOld(n){
   if(!n||!n.stock)return;
   var told=[];
   n.stock.forEach(function(it){
@@ -11920,20 +12105,62 @@ function rechargeMenu(n){
   modal({title:'Recharging \u00b7 '+P.gold+' gold',narrow:1,
     flavor:'"Every time I fill one it holds a little less. That is the wood, not me."',cards:cards});
 }
+/* v0.27: who names what. Each trader reads their own trade — on you, or on
+   their own shelf before you buy. The pack-trader reads anything, dearly. */
+var NAME_TRADE={
+ food:{ts:['supply'],s:'any food or drink — in your pack or on their shelf — for a few coins',
+   none:'"Food and drink I know. You have nothing to eat I cannot already see you know, and nothing on my shelf you have not had."',
+   say:'"I know every crumb of it. What it does after you swallow it is the part you are paying for."',mul:1},
+ relic:{ts:['potion','ring','wand'],s:'flasks, rings and wands — yours, or what is on their shelf',
+   none:'"Flasks, rings, sticks. Nothing on you or on my cloth that you do not already know."',
+   say:'"I know what I carry. I sell the knowing too."',mul:1},
+ paper:{ts:['potion','ring','wand','scroll','book','weapon','armor','unique'],s:'they will tell you what a thing is, for a price — yours or theirs',
+   none:'"I read workings — flasks, rings, wands, writing, steel with something in it. There is nothing here I have not already named for you."',
+   say:'"I will tell you what a thing is. I will not tell you whether you want it."',mul:1},
+ iron:{ts:['weapon','armor','unique'],s:'steel and coats — what is in them, and whether it holds on',
+   none:'"Nothing of iron or leather on you that I have not already read."',
+   say:'"I can tell you what is in the steel. That includes anything that will not let go of you."',mul:1},
+ general:{ts:'all',s:'anything at all, on you or on their pack — at a mark-up',
+   none:'"Nothing on you or in my pack that I could tell you about that you do not already know."',
+   say:'"I know a bit about everything. A bit more for a bit more."',mul:1.5}
+};
+function identifiable2(rec){
+  if(!rec)return false;
+  if(rec.t==='supply'){var S=SUPPLY[rec.i];return !!(S&&!S.plain&&!known['f'+rec.i]);}
+  return identifiable(rec);
+}
+function identKey(rec){
+  switch(rec.t){case 'potion':return 'p'+rec.i;case 'ring':return 'r'+rec.i;case 'wand':return 'n'+rec.i;
+    case 'scroll':case 'book':return 's'+rec.i;case 'supply':return 'f'+rec.i;}
+  return null;
+}
+function namePrice(rec,mul){
+  var p=rec.t==='supply'?Math.max(12+(depth||1),Math.round(worthValue(rec)*0.6))
+    :Math.max(30,Math.round(worthValue(rec)*0.30));
+  return Math.round(p*(mul||1));
+}
 function nameMenu(n){
   var def=npcDef2(n);
-  var pool=[];
-  [P.wep,P.off,P.arm,P.ring].forEach(function(r){if(identifiable(r))pool.push({rec:r,where:'worn'});});
-  P.carry.forEach(function(c){if(identifiable(c))pool.push({rec:c,where:''});});
+  var kind=(def||{}).shop||'general';
+  var NT=NAME_TRADE[kind]||NAME_TRADE.general;
+  var fits=function(r){return identifiable2(r)&&(NT.ts==='all'||NT.ts.indexOf(r.t)>=0);};
+  var pool=[],keys={};
+  var add=function(r,where){
+    if(!fits(r))return;
+    var k=identKey(r);
+    if(k){if(keys[k])return;keys[k]=1;}
+    pool.push({rec:r,where:where});};
+  [P.wep,P.off,P.arm,P.ring].forEach(function(r){add(r,'worn');});
+  P.carry.forEach(function(c){add(c,'');});
+  (n.stock||[]).forEach(function(it){add(it,'on their shelf');});
   if(!pool.length){
-    say('"I read workings — flasks, rings, wands, writing, steel with something in it. '+
-        'You are carrying none I have not already named for you."','voice');
+    say(NT.none,'voice');
     return openShop(n,def);
   }
   modal({title:def.n+' \u00b7 '+P.gold+' gold',
-    flavor:'"I will tell you what a thing is. I will not tell you whether you want it."',
+    flavor:NT.say,
     cards:pool.map(function(o){
-      var price=Math.max(30,Math.round(worthValue(o.rec)*0.30));
+      var price=namePrice(o.rec,NT.mul);
       return {t:cap(itemName(o.rec))+(o.where?' ('+o.where+')':'')+' \u2014 '+price+'g',
         s:P.gold<price?'you cannot pay':'they will read it for you',
         dim:P.gold<price,
@@ -11941,7 +12168,7 @@ function nameMenu(n){
           if(P.gold<price)return;
           P.gold-=price;
           say(learnItem(o.rec),'find');
-          paint();openShop(n,def);}};
+          paint();nameMenu(n);}};
     }).concat([{t:'Back',s:'',go:function(){openShop(n,def);}}])});
 }
 function liftMenu(n){
@@ -11988,7 +12215,7 @@ function sellMenu(n){
     say('You have nothing loose to sell.','warn');
     return openShop(n,def);
   }
-  var cards=P.carry.filter(function(it){return !(isBox(it)&&it.box&&it.box.length);}).map(function(it){
+  var cards=P.carry.filter(function(it){return !(isBox(it)&&it.box&&it.box.length)&&!(it.t==='supply'&&(it.job||it.vf));}).map(function(it){
     var p=sellFor(it);
     /* Handing a thing over the counter does not teach you what it was. They
        know; you are the one selling it without knowing, which is the whole
@@ -12097,6 +12324,8 @@ function describeItem(it,full){
       return (S2.drink&&!S2.food?'a drink':'food')+' \u2014 you have not had this one';
     if(S2.pick)return 'opens pinned locks';
     if(S2.skey)return 'opens the locked stairwell on the floor it was found on';
+    if(S2.vkey)return 'opens the sealed vault on floor '+it.vf;
+    if(S2.errand){var Jd=jobById(it.job);return Jd?(it.tok?'take it up to '+Jd.gn+' on floor '+Jd.gd+', so they know':'take it up to '+Jd.gn+' on floor '+Jd.gd):'somebody wanted this';}
     if(S2.key)return 'opens one iron lock';
     if(S2.fix)return 'works scorching and warping out of your gear \u2014 not rust';
     if(S2.holy)return 'blesses one thing you carry \u2014 once';
@@ -12621,7 +12850,7 @@ function npcWake(n){
   }
   return D;
 }
-function npcName(n){var T=tellerDef(n);return T?T.n:npcDef2(n).n;}
+function npcName(n){if(n.nm)return n.nm;var T=tellerDef(n);return T?T.n:npcDef2(n).n;}
 
 function npcStep(n,dx,dy){
   if(!dx&&!dy)return false;
@@ -12647,6 +12876,7 @@ function moveNpcs(){
     var safe=keepsLore(n);
     if(safe){if(n.maxHp)n.hp=Math.max(n.hp,1);D={temper:'flees',move:D.move!==0?1:0};}
     if(n.hp<=0)return npcFalls(n,'');
+    if(n.follow){followStep(n);return;}
 
     /* whatever is closest and awake is the thing they are dealing with */
     var threat=null,best=99;
@@ -12733,6 +12963,7 @@ function monStrikeNpc(m,n){
 
 function npcFalls(n,by){
   if(npcs.indexOf(n)===-1)return;
+  jobFalls(n);
   var T=tellerDef(n);
   var D=T||npcDef2(n);
   npcs=npcs.filter(function(z){return z!==n;});
@@ -13599,13 +13830,16 @@ function drawFloorSheet(cv,d){
   });
   /* and so are the people, who do not wander far */
   (F.npcs||[]).forEach(function(n){
+    if(n.found===0)return;               /* v0.27.1: only the people you have actually seen */
     if(!F.seen[n.y]||!F.seen[n.y][n.x])return;
     var def=(n.teller&&TELLERS.filter(function(x){return x.id===n.teller;})[0])||
             NPCS.filter(function(x){return x.role===n.role;})[0];
     if(!def)return;
-    c.fillStyle=def.c;
-    if(ts>=6)c.fillText(def.g,ox+n.x*ts+ts/2,oy+n.y*ts+ts/2);
-    else c.fillRect(ox+n.x*ts+1,oy+n.y*ts+1,ts-2,ts-2);
+    var nx=ox+n.x*ts+ts/2,ny=oy+n.y*ts+ts/2,nr=Math.max(4,ts*0.62);
+    c.fillStyle='rgba(14,13,12,0.82)';c.beginPath();c.arc(nx,ny,nr,0,Math.PI*2);c.fill();
+    c.strokeStyle=def.c;c.lineWidth=1.5;c.stroke();
+    var keepF=c.font;c.font='700 '+Math.max(7,Math.round(nr*1.4))+'px "IBM Plex Mono", ui-monospace, monospace';
+    c.fillStyle=def.c;c.fillText(def.g,nx,ny+0.5);c.font=keepF;
   });
   /* your own marks, on top of everything you drew yourself */
   marksOn(d).forEach(function(mk){
@@ -13669,7 +13903,13 @@ function mapBook(page,pre){
   wireMapZoom(cv,d);
   var ed=document.createElement('div');ed.className='markEd';body.appendChild(ed);
   var ml=document.createElement('div');ml.className='markList';body.appendChild(ml);
-  cv._pick=function(x,y){cv._sel={x:x,y:y};markEditor(cv,d,ed,ml);drawFloorSheet(cv,d);};
+  cv._pick=function(x,y){
+    var who=npcOnMap(d,x,y);
+    cv._sel={x:x,y:y};markEditor(cv,d,ed,ml);drawFloorSheet(cv,d);
+    if(who){var p=document.createElement('p');p.className='legendNote npcHere';
+      p.textContent='☺ '+npcInfo(who)+'.';ed.insertBefore(p,ed.firstChild);
+      if(d===depth)say('On the map: '+npcInfo(who)+'.','dim');}
+  };
   markList(cv,d,ed,ml);
   if(pre){if(mapView.z<2)mapView.z=3;mapView.cx=pre.x+0.5;mapView.cy=pre.y+0.5;
     setTimeout(function(){cv._pick(pre.x,pre.y);},0);}
@@ -13684,7 +13924,7 @@ function mapBook(page,pre){
   key.textContent=book(d).n+' · '+(lvlTh?lvlTh.n:pal(d).name)+
     ' — you have seen '+(open?Math.round(walked/open*100):0)+'% of this floor with your own eyes'+
     (known>walked?', and know another '+Math.round((known-walked)/open*100)+'% only from a chart (washed blue)':'')+
-    '. @ is you; the stairs are three bars. Strongboxes and people are on it; loot and anything that moves are not. Blank is ground nobody has covered.';
+    '. @ is you; the stairs are three bars. Strongboxes and the people you have found are on it — tap one to see who they are; loot and anything that moves are not. Blank is ground nobody has covered.'+vaultNote(d);
   body.appendChild(key);
 
   modal({title:'Floor '+d+(mine?' — where you are standing':''),book:1,
@@ -15772,8 +16012,29 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.26.3';
+var GAME_VERSION='0.27.2';
 var VERSIONS=[
+ {v:'0.27.2',d:'16 Nov 2026',n:[
+  'Traps you set never go off under you — only under what hunts you. Standing next to one of your own and taking it apart (z) lifts it straight back into your pack, no roll.'
+ ]},
+ {v:'0.27.1',d:'16 Nov 2026',n:[
+  'Traps you set can be stacked on one square. Whatever steps there sets off all of them at once, and every one is spent, even if the first was more than enough.',
+  'Sealed vaults: some floors have a vault door nothing will move but its own named key, which lies a few floors further down. What is inside is worth the climb back — better than what the floor two below where you are now would give you. The map book remembers the door.',
+  'Errands and rescues: some of the people you meet will ask you to fetch something from a floor below, or to find someone who went down ahead of them. Bring them back alive (they follow you, take the stairs with you, and can be killed), or bring back something of theirs so they know. Rewards are yours to choose: gear, a lasting gift, or one more thing learned. Your character sheet keeps the list.',
+  'Traders take special orders: pay now, and it is ready once you have been two floors deeper and come back. They also get fresh stock in while you are away.',
+  'The map book shows the people you have found, and tapping one tells you who they are.',
+  'A third fewer arrows lying about.',
+  'And something on the stair for anyone who does not linger.'
+ ]},
+ {v:'0.27',d:'16 Nov 2026',n:[
+  'Immunities hold: emberbolt, kindle, the wand of sparks and a burning brand do nothing at all to a thing that cannot burn, and venom bolts and miasma do nothing to a thing poison cannot touch. The log says so.',
+  'Traps you lift and set again catch what walks on them, every kind — fire vents set them alight, webs and nooses and roots hold them, hollow floors swallow them, the quiet makes them lose you — and a fire vent does nothing to a thing that cannot burn (a venting seam nothing to a thing poison cannot touch).',
+  'More to eat and drink that works on your head: teas, wafers and leaf that give FP back (and a rare spring water that fills it), and wines, ales and cakes that cloud you and take it away.',
+  'The deeper you go, the more of what lives there can see you when you cannot be seen: a few on the first floors, about a quarter by floor 10, most of them near the bottom.',
+  'Traders: never more than four or five floors without one (each run decides which), and some runs they band together — two or three in one room. Their shelves are no longer labelled for free: pay a trader to name a thing in their trade, in your pack or on their shelf (victualler: food and drink; relic-monger: flasks, rings, wands; armourer: steel and coats; scrivener: any working; pack-trader: anything, dearer). Whatever you buy, they name as they hand it over.',
+  'Village Idiot: dumb luck — one find in twenty comes out a step rarer.',
+  'Cutpurse: Vanish costs 5 FP and lasts 4 turns (10 with Second Shadow).'
+ ]},
  {v:'0.26.3',d:'16 Nov 2026',n:[
   'Brightness: Settings \u2192 Display turns the game itself up (80% to 180%), with quick settings and a Shadows option that lifts the near-black of remembered walls and dark panels. On a phone, leave the screen at its usual brightness and turn the game up here instead \u2014 no more being blinded when you switch to another app. Kept per device.'
  ]},
@@ -16201,6 +16462,7 @@ function charSheet(){
       esc(plainOf('spell',o.sp.id)||o.sp.t)+'</td></tr>';}).join('')+'</table>';
   var task='<div class="csTask"><b>'+esc(P.qd.obj)+'</b><span>'+esc(P.qd.n)+' \u00b7 '+esc(String(P.qd.prog()))+'</span></div>';
   var tally='<div class="charSheet">'+task+head+
+    (jobLines().length?'<p class="legendHead">Promises and errands</p><table class="rec keys2">'+jobLines().map(function(t){return '<tr><td>'+esc(t)+'</td></tr>';}).join('')+'</table>':'')+
     '<p class="legendHead">What you are good at</p>'+rows+
     '<p class="legendHead">What you can do</p>'+ab+
     '<p class="legendHead">What you have learned</p>'+sk+
@@ -17070,7 +17332,7 @@ var ABIL_HOW={
  hunter2:'one arrow, a full shot on everything in three squares: click a square to hit it and the two behind it, or pick a direction to hit the three squares out from you (needs a bow, uses one arrow)',
  lamplighter1:'a bolt of fire at a target: 15, +3 a level (+6 holding a staff)',
  lamplighter2:'a shield that soaks the next 24 damage',
- cutpurse1:'everything on the floor loses track of you for 6 turns',
+ cutpurse1:'everything on the floor loses track of you for 4 turns (10 with Second Shadow)',
  cutpurse2:'blind one enemy beside you and strike it as if from behind (your backstab, \u00d72.2 or more), then it loses you for 2 turns',
  bellringer1:'hit everything next to you for 12, +2 a level, and stun it for 2 turns',
  bellringer2:'heal 22, +2 a level',
@@ -19176,11 +19438,25 @@ function uncurseFlasks(){
    with no blood in them cannot be bled. It holds for weapons, arrows,
    traps and thrown flasks alike, and looking at a thing tells you. */
 var IMM_RX={
- burn:/\b(fire|flame|ember|cinder|ash|ashen|lava|magma|kiln|charred|slag|brimstone|soot|smoke|spark|blaze|pyre|furnace|coal|heat|burnt|burning|salamander|infern|scorch|smoulder|flare|sulphur|cinderwake|charhulk|flarelight|imp)\b/i,
+ burn:/\b(fire|flame|ember|cinder|ash|ashen|lava|magma|kiln|charred|slag|brimstone|soot|smoke|spark|blaze|pyre|furnace|coal|heat|burnt|burning|salamander|infern|scorch|smoulder|flare|sulphur|cinderwake|charhulk|flarelight|imp|pyromancer|obsidian|caldera)\b/i,
  poison:/\b(swamp|bog|marsh|mire|fen|toad|frog|bloat|bloatfish|slime|ooze|fungus|fungal|mould|mold|spore|spore-spitter|spore-bearer|myconid|leech|newt|adder|viper|venom|sludge|muck|lamprey|plague|blight|miasma|reed|weed|kelp)/i,
  bleed:/\b(shade|ghost|spirit|wraith|shimmer|golem|construct|skeleton|bone|stone|statue|absence|voice|echo|wisp|will-o|shadow|smoke|unwritten|clockwork|husk|mote|haze|mist\b|phantom|spectre|specter|apparition|automaton|gargoyle|elemental|jelly|slime|ooze|mirror|glass|crystal|living flame|lantern|thing that sounds|still watcher)/i
 };
 var IMM_NAME={burn:'fire',poison:'poison',bleed:'bleeding'};
+/* what a working or a bolt is made of (v0.27) — the thing it cannot hurt */
+var SPELL_ELEM={ember:'burn',kindle:'burn',venom:'poison',miasma:'poison'};
+function flyElem(rider){
+  if(FLY_KIND==='spell'&&CUR_SPELL&&SPELL_ELEM[CUR_SPELL])return SPELL_ELEM[CUR_SPELL];
+  if(rider==='kindle')return 'burn';
+  return '';
+}
+function immuneHit(m,k){
+  if(!inSight(m.x,m.y))return;
+  var nm=cap(monKind(m).n);
+  say(k==='burn'?'The fire goes over '+monKind(m).n+' like water. '+nm+' does not burn — no harm done.'
+    :(k==='poison'?'The venom runs off '+monKind(m).n+'. Poison cannot touch it — no harm done.'
+    :nm+' has no blood in it to lose.'),'warn');
+}
 function monImmune(m,k){
   if(!m||!k)return false;
   if(m.imm&&m.imm[k])return true;
@@ -19755,7 +20031,9 @@ function seeInvisTurn(){
   });
   if(told>2)say('And '+(told-2)+' more of them can still see you.','hit');
 }
-function seeInvOdds(d){return clamp(Math.round((d-3)*2.0),0,40);}
+/* v0.27: steeper — a few on the first book, a quarter by floor 10, most of
+   what lives near the bottom. Being unseen is a top-floor trick. */
+function seeInvOdds(d){return clamp(Math.round((d-2)*3.2),0,75);}
 
 /* ═══════════════ what is working on them ═══════════════ */
 function monSlow(m,t,quiet){
@@ -19985,6 +20263,7 @@ function castNew(id,dx,dy){
       for(var oy=-1;oy<=1;oy++)for(var ox=-1;ox<=1;ox++)burstFx(land.x+ox,land.y+oy,SPELL_COL.miasma,'fizzle',undefined,undefined,120+rnd(140));
       if(!cloud.length){say('A green cloud hangs where it lands, and nothing is in it.','warn');return true;}
       cloud.forEach(function(m){if(mons.indexOf(m)<0)return;m.awake=1;m.bled=1;
+        if(monImmune(m,'poison')){immuneHit(m,'poison');return;}
         var d=Math.max(1,Math.round(4*workMul()));m.hp-=d;if(m.hp<=0)return slay(m);
         monPoison(m,9,1);});
       say('A green cloud breaks over '+cloud.length+' of them. They are poisoned.','good');
@@ -20184,6 +20463,494 @@ function floorExtras26(d){
   try{placeScraps(d);}catch(e){}
   try{rewardNooks(d);}catch(e){}
   try{placeSpellbook(d);}catch(e){}
+}
+
+/* ═══════════════ v0.27.1 — reasons to go down, and to come back up ═══════════════
+   Sealed vaults whose keys lie deeper; errands and rescues from the people
+   you meet; special orders and fresh stock at the traders; and a quiet gift
+   for whoever leaves a floor quickly. */
+
+/* the deepest floor actually walked — a chart of a floor does not count */
+function deepestWalked(){
+  var m=depth||1,fl=(P&&P.st&&P.st.fl)||{};
+  Object.keys(fl).forEach(function(k){var n=parseInt(k,10);if(n>m)m=n;});
+  return m;
+}
+function supIdx(id){return SUPPLY.map(function(S){return S.id;}).indexOf(id);}
+function pass27(t){return !SOLID[t]||DOORISH[t]||t===T_HIDDEN||t===T_CRACK;}
+/* everything reachable from a square, with one square held shut */
+function flood27(sx,sy,bx,by){
+  var reach=blank(false),q=[[sx,sy]],h=0;reach[sy][sx]=true;
+  while(h<q.length){var c=q[h++];
+    for(var i=0;i<4;i++){var x=c[0]+[1,-1,0,0][i],y=c[1]+[0,0,1,-1][i];
+      if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1||reach[y][x])continue;
+      if(x===bx&&y===by)continue;
+      if(!pass27(map[y][x]))continue;
+      reach[y][x]=true;q.push([x,y]);}}
+  return reach;
+}
+/* a free square near somewhere, people and things included */
+function nearFree27(x,y,r){
+  r=r||2;
+  for(var k=0;k<40;k++){
+    var nx=x+rnd(r*2+1)-r,ny=y+rnd(r*2+1)-r;
+    if(nx<1||ny<1||nx>=MAP_W-1||ny>=MAP_H-1)continue;
+    var t=map[ny][nx];if(SOLID[t]||t===T_PIT||t===T_LAVA||stairAt(nx,ny))continue;
+    if(nx===P.x&&ny===P.y)continue;
+    if(mons.some(function(m){return m.x===nx&&m.y===ny;}))continue;
+    if(npcs.some(function(n){return n.x===nx&&n.y===ny;}))continue;
+    if(inVault(nx,ny))continue;
+    return {x:nx,y:ny};
+  }
+  return null;
+}
+/* something put on a floor that has already been made (a chart made it, or
+   you walked it) goes straight into the stored floor */
+function injectStored(k,what,isNpc){
+  var L=levels[k];if(!L)return false;
+  var rows=unpackRows(L.map,L.z),spots=[];
+  for(var y=1;y<rows.length-1;y++)for(var x=1;x<rows[y].length-1;x++){
+    if(chTile(rows[y][x])!==T_FLOOR)continue;
+    if((L.ups||[]).concat(L.downs||[]).some(function(s){return Math.abs(s.x-x)+Math.abs(s.y-y)<4;}))continue;
+    spots.push([x,y]);}
+  if(!spots.length)return false;
+  var s=spots[rnd(spots.length)];what.x=s[0];what.y=s[1];
+  if(isNpc)(L.npcs=L.npcs||[]).push(what);else (L.loot=L.loot||[]).push(what);
+  return true;
+}
+function giveOrDrop(it,quiet){
+  if(P.carry.length<packMax()){P.carry.push(it);return 'pack';}
+  it.x=P.x;it.y=P.y;loot.push(it);
+  if(!quiet)say('Your pack is full, so '+itemName(it)+' goes at your feet.','warn');
+  return 'floor';
+}
+
+/* ─── sealed vaults ─── */
+var VAULT_KEYS=['the cistern key','the bell-house key','the tithe key','the reliquary key','the long-room key',
+ 'the counting-house key','the chapter key','the lantern-room key','the ossuary key','the salt-store key',
+ 'the muniment key','the well-head key','the vestry key','the boat-house key','the winter key','the gallery key'];
+function isVaultDoor(x,y){var V=FL&&FL.sv;return !!(V&&!V.open&&V.dx===x&&V.dy===y);}
+function inVault(x,y){var V=FL&&FL.sv;if(!V||V.open)return false;return x>=V.rx&&x<V.rx+V.rw&&y>=V.ry&&y<V.ry+V.rh;}
+function vaultOf(d){P.vaults=P.vaults||{};return P.vaults[d]||null;}
+function makeVault(d){
+  if(!P||d<2||d>LAST-4)return;
+  if(!chance(36))return;
+  P.vaults=P.vaults||{};
+  var used={};Object.keys(P.vaults).forEach(function(k){if(+k!==d)used[P.vaults[k].n]=1;});
+  var names=VAULT_KEYS.filter(function(n){return !used[n];});if(!names.length)return;
+  var root=ups[0]||downs[0];if(!root)return;
+  var reach=flood27(root.x,root.y,-1,-1);
+  var stairs=ups.concat(downs);
+  /* cut into solid rock beside ground you can walk: a small room, walled in
+     stone nothing breaks, with one door in it */
+  for(var tries=0;tries<500;tries++){
+    var w=3+rnd(3),h=3+rnd(2);
+    var x0=2+rnd(MAP_W-w-4),y0=2+rnd(MAP_H-h-4);
+    var ok=true;
+    for(var y=y0-1;y<=y0+h&&ok;y++)for(var x=x0-1;x<=x0+w;x++){
+      if(x<1||y<1||x>=MAP_W-1||y>=MAP_H-1||map[y][x]!==T_WALL){ok=false;break;}}
+    if(!ok)continue;
+    /* the door: the middle of one side, with walkable, reachable ground outside it */
+    var sides=shuffle([[x0+(w>>1),y0-1,0,-1],[x0+(w>>1),y0+h,0,1],[x0-1,y0+(h>>1),-1,0],[x0+w,y0+(h>>1),1,0]]);
+    var door=null;
+    for(var si=0;si<4&&!door;si++){var S=sides[si],ox=S[0]+S[2],oy=S[1]+S[3];
+      if(ox<1||oy<1||ox>=MAP_W-1||oy>=MAP_H-1)continue;
+      if(!reach[oy][ox]||SOLID[map[oy][ox]]||map[oy][ox]===T_PIT||map[oy][ox]===T_LAVA)continue;
+      if(stairs.some(function(q){return Math.abs(q.x-ox)+Math.abs(q.y-oy)<3;}))continue;
+      door={x:S[0],y:S[1],ox:ox,oy:oy};}
+    if(!door)continue;
+    for(var yy=y0-1;yy<=y0+h;yy++)for(var xx=x0-1;xx<=x0+w;xx++)
+      map[yy][xx]=(xx>=x0&&xx<x0+w&&yy>=y0&&yy<y0+h)?T_FLOOR:T_HARD;
+    map[door.y][door.x]=T_LOCKED;
+    var name=names[rnd(names.length)];
+    FL.sv={dx:door.x,dy:door.y,ox:door.ox,oy:door.oy,rx:x0,ry:y0,rw:w,rh:h,n:name,open:0};
+    var kf=Math.min(LAST-1,d+2+rnd(3));
+    P.vaults[d]={n:name,kf:kf,got:0,open:0};
+    var key={t:'supply',i:supIdx('vaultkey'),vf:d,en:name};
+    if(levels[kf]&&kf!==depth)injectStored(kf,key,false);
+    return true;
+  }
+  return false;
+}
+/* the key, laid on the floor it belongs to as that floor is made */
+function placeVaultKeys(d){
+  Object.keys(P.vaults||{}).forEach(function(k){
+    var V=P.vaults[k];if(V.open||V.kf!==d||+k===d)return;
+    var q=farSpot();if(!q)return;
+    loot.push({t:'supply',i:supIdx('vaultkey'),vf:+k,en:V.n,x:q.x,y:q.y});
+  });
+}
+function vaultDoor(x,y){
+  var V=FL.sv,R=vaultOf(depth)||{n:V.n,kf:depth+2};
+  var key=P.carry.filter(function(c){return c.t==='supply'&&c.vf===depth;})[0];
+  if(!key){
+    modal({title:'A sealed vault',
+      flavor:'Iron set into stone that was built to stay up. Nothing in your hands moves it — not picks, not a shoulder, not a working, not a prayer. The lock wants '+V.n+'.\n\n'+
+        (R.got?'You have had that key in your hands. It is not on you now.':'Its key is somewhere below — in the next few floors down, wherever somebody let go of it.')+
+        '\n\nThe map book will remember this door.',
+      cards:[{t:'Leave it.',s:'',go:function(){closeUI();paint();}}],narrow:1});
+    $('veilFlavor').style.whiteSpace='pre-line';
+    return;
+  }
+  P.carry.splice(P.carry.indexOf(key),1);
+  map[y][x]=T_OPEN;V.open=1;R.open=1;
+  runStats().vaults=(runStats().vaults||0)+1;
+  var L=Math.min(LAST+2,Math.max(R.kf||depth+2,deepestWalked())+2);
+  var free=[];
+  for(var yy=V.ry;yy<V.ry+V.rh;yy++)for(var xx=V.rx;xx<V.rx+V.rw;xx++)
+    if(map[yy][xx]===T_FLOOR&&!loot.some(function(l){return l.x===xx&&l.y===yy;}))free.push({x:xx,y:yy});
+  free=shuffle(free);
+  var put=function(it){var q=free.pop()||{x:V.ox,y:V.oy};it.x=q.x;it.y=q.y;loot.push(it);};
+  /* steel worth the climb back: a step above what the floor two below would give */
+  var g=null;
+  for(var tries=0;tries<30&&!g;tries++){var c=makeItem(L);if(c.t==='weapon'||c.t==='armor'||c.t==='unique')g=c;}
+  if(!g)g=temper({t:chance(60)?'weapon':'armor',i:0,r:0},L);
+  if(g.t==='weapon'&&!g.i)g.i=rnd(WEAPONS.length);
+  if(g.t!=='unique')g.r=Math.min(RARITY.length-1,Math.max(g.r||0,rollRarity(L)+1));
+  g.cursed=null;
+  put(g);
+  put(makeItem(L));put(makeItem(L));
+  if(chance(55))put({t:'potion',i:potionFor(L)});
+  put({t:'gold',amt:coin(60+L*18+rnd(40+L*6))});
+  say(cap(V.n)+' turns, and the door that was built not to open opens.','good');
+  say('Inside: what somebody put by against a bad year, and it was put by well.','find');
+  endTurn();
+}
+/* nobody ends up inside a vault by any other road */
+function vaultGuard(){
+  if(!FL||!FL.sv||FL.sv.open||!inVault(P.x,P.y))return;
+  var V=FL.sv;P.x=V.ox;P.y=V.oy;
+  say('Whatever put you in there does not keep you there. You are outside the vault door.','warn');
+}
+
+/* ─── errands and rescues ─── */
+var JOB_ROLES={scholar:1,survivor:1,wounded:1,lamp:1,digger:1,pilgrim:1,deserter:1,chronicler:1};
+var ERRAND_THINGS=['a brass compass','a sealed letter-case','a field journal','a surveyor’s rod','a silver locket',
+ 'a bundle of letters','a reliquary box','a set of drawn maps','a bell clapper','a lamp-glass, unbroken','a ring of house keys','a tin of seed'];
+var ERRAND_WHERE=['my pack went down the shaft when the floor gave','I dropped it running, and did not stop',
+ 'I left it with somebody who did not come back up','it went over the edge with the rope','I hid it, and could not go back for it'];
+var LOST_NAMES=['Edda','Tomas','Wil','Marta','Joss','Ilse','Ben','Corin','Nell','Aric','Hale','Sefa','Ottilie','Brann'];
+var LOST_RELS=['my brother','my sister','my partner','my apprentice','my son','my daughter','my oldest friend','the one I came down with'];
+var KEEPSAKES=['tin whistle','knife','scarf','lamp','prayer-cord','boots','ring','hat'];
+function jobs(){P.jobs=P.jobs||[];return P.jobs;}
+function jobById(id){return jobs().filter(function(J){return J.id===id;})[0]||null;}
+function jobItem(J){return P.carry.filter(function(c){return c.t==='supply'&&c.job===J.id;})[0]||null;}
+function offerFor(n){
+  var deep=Math.max(depth,deepestWalked());
+  var tf=Math.min(LAST-1,deep+1+rnd(3));
+  if(tf<=depth)return null;
+  var D=npcDef2(n);
+  if(chance(55))return {kind:'fetch',tf:tf,what:ERRAND_THINGS[rnd(ERRAND_THINGS.length)],where:ERRAND_WHERE[rnd(ERRAND_WHERE.length)]};
+  var used={};jobs().forEach(function(J){if(J.who)used[J.who]=1;});
+  var nm=LOST_NAMES.filter(function(x){return !used[x];});
+  return {kind:'rescue',tf:tf,who:nm.length?nm[rnd(nm.length)]:'Ash',rel:LOST_RELS[rnd(LOST_RELS.length)],
+    keep:KEEPSAKES[rnd(KEEPSAKES.length)]};
+}
+function jobTalk(n){
+  if(n.role==='strayed'){strayedTalk(n);return true;}
+  var J=n.job?jobById(n.job):null;
+  if(J&&J.st!=='done'&&J.st!=='failed'){giverTalk(n,J);return true;}
+  if(n.offer&&!n.job&&JOB_ROLES[n.role]){
+    if(!n.offerD||n.offerD.tf<=depth)n.offerD=offerFor(n);
+    if(!n.offerD){n.offer=0;return false;}
+    offerJob(n,n.offerD);return true;
+  }
+  return false;
+}
+function offerJob(n,O){
+  var D=npcDef2(n);
+  var flavor=O.kind==='fetch'
+    ?'"There is something you could do for me. '+cap(O.where)+' — floor '+O.tf+'. '+cap(O.what)+' is still down there, and I need it. Bring it up to me here, floor '+depth+', and I will make the climb worth it."'
+    :'"'+cap(O.rel)+' — '+O.who+' — went down ahead of me, to floor '+O.tf+'. Nobody has come back up. Find '+O.who+'. If '+O.who+' is alive, bring them up to me, here on floor '+depth+'. If not… bring me something of theirs, so I know."';
+  modal({title:D.n,flavor:flavor,cards:[
+    {t:'I will look.',s:O.kind==='fetch'?'fetch it from floor '+O.tf+' and bring it back here':'find '+O.who+' on floor '+O.tf+', and bring them, or word of them, back here',go:function(){
+      var J={id:'j'+Date.now().toString(36)+rnd(999),kind:O.kind,gd:depth,gr:n.role,gn:D.n,tf:O.tf,
+        what:O.what||'',who:O.who||'',rel:O.rel||'',keep:O.keep||'',st:'open'};
+      jobs().push(J);n.job=J.id;n.offer=0;
+      if(levels[J.tf])placeJob(J,true);
+      say(O.kind==='fetch'?'You said you would bring '+O.what+' up from floor '+O.tf+'. It is in your journal (the character sheet).'
+        :'You said you would look for '+O.who+' on floor '+O.tf+'. It is in your journal (the character sheet).','find');
+      closeUI();paint();}},
+    {t:'Not this time.',s:'they will not ask again',go:function(){n.offer=0;closeUI();talkBase(n);}},
+    {t:'Talk about something else.',s:'',go:function(){closeUI();talkBase(n);}}]});
+}
+/* what an errand needs, put on its floor */
+function placeJob(J,stored){
+  if(J.placed)return;
+  J.placed=1;
+  if(J.kind==='fetch'){
+    var it={t:'supply',i:supIdx('errand'),job:J.id,en:J.what};
+    if(stored){injectStored(J.tf,it,false);return;}
+    var q=farSpot();if(q){it.x=q.x;it.y=q.y;loot.push(it);}
+    return;
+  }
+  J.alive=chance(55);
+  if(J.alive){
+    var o={role:'strayed',nm:J.who,job:J.id,stock:null,told:0,pending:null,seen:{},gave:{},done:0,found:0};
+    if(stored){injectStored(J.tf,o,true);return;}
+    var s=farSpot();if(s){o.x=s.x;o.y=s.y;npcs.push(o);}
+  } else {
+    var tk={t:'supply',i:supIdx('errand'),job:J.id,en:J.who+'’s '+J.keep,tok:1};
+    if(stored){injectStored(J.tf,tk,false);return;}
+    var q2=farSpot();if(q2){tk.x=q2.x;tk.y=q2.y;loot.push(tk);}
+  }
+}
+function placeJobs(d){jobs().forEach(function(J){if(J.tf===d&&J.st==='open'){J.placed=0;placeJob(J,false);}});}
+function jobPickNote(l){
+  if(l.vf){var V=vaultOf(l.vf);if(V)V.got=1;
+    say('This is '+l.en+'. It opens the sealed vault on floor '+l.vf+'.','find');return;}
+  var J=jobById(l.job);if(!J)return;
+  if(l.tok){if(J.st==='open')J.st='token';
+    say('It is '+l.en+'. '+J.who+' is not coming back up. '+cap(J.gn)+' on floor '+J.gd+' will want to know.','warn');return;}
+  say('This is what '+J.gn+' on floor '+J.gd+' sent you for. Take it back up to them.','find');
+}
+function giverTalk(n,J){
+  var D=npcDef2(n),it=jobItem(J);
+  var done=function(kind){closeUI();jobReward(n,J,kind);};
+  if(J.kind==='fetch'&&it){
+    modal({title:D.n,flavor:'"You went down for it. You actually went down for it." They take '+J.what+' out of your hands and do not let go of it again.',
+      cards:[{t:'Hand it over.',s:'and see what they have for you',go:function(){P.carry.splice(P.carry.indexOf(it),1);done('big');}}]});return;}
+  if(J.kind==='rescue'&&J.st==='back'){
+    modal({title:D.n,flavor:'"'+J.who+'." For a while that is all they say. Then: "You brought them up. I did not think anybody would."',
+      cards:[{t:'Let them be.',s:'and see what they have for you',go:function(){done('big');}}]});return;}
+  if(J.kind==='rescue'&&it&&it.tok){
+    modal({title:D.n,flavor:'You hold out '+it.en+'. They know it before you have said anything. "Then I know," they say. "That is worth more than you would think."',
+      cards:[{t:'Give it to them.',s:'they want you to have something for it',go:function(){P.carry.splice(P.carry.indexOf(it),1);done('small');}}]});return;}
+  var line=J.kind==='fetch'?'"Floor '+J.tf+'. '+cap(J.what)+'. You will know it when you see it."'
+    :(J.st==='escort'?'"Is '+J.who+' with you? Bring them up — floor '+J.gd+', here."':'"Floor '+J.tf+'. '+J.who+'. Anything at all."');
+  modal({title:D.n,flavor:line,cards:[
+    {t:'Talk about something else.',s:'',go:function(){closeUI();talkBase(n);}},
+    {t:'Walk on.',s:'',go:function(){closeUI();paint();}}]});
+}
+/* what they have to give, and you choose */
+var JOB_STATS=[
+ {t:'+2 attack, for good',go:function(){P.atk+=2;}},
+ {t:'+2 defence, for good',go:function(){P.def+=2;}},
+ {t:'+12 maximum health, for good',go:function(){P.maxHp+=12;P.hp+=12;}},
+ {t:'+3 maximum FP, for good',go:function(){P.focMax+=3;P.foc+=3;}}];
+function jobReward(n,J,size){
+  J.st='done';n.job=null;
+  runStats().jobs=(runStats().jobs||0)+1;
+  var deep=deepestWalked(),cards=[];
+  var finish=function(msg){closeUI();if(msg)say(msg,'good');paint();};
+  var gear=function(){var g=null;
+    if(size==='big'&&deep>=5&&chance(55))g={t:'unique',i:randUnique()};
+    else{for(var k=0;k<30&&!g;k++){var c=makeItem(deep+3);if(c.t==='weapon'||c.t==='armor')g=c;}
+      if(!g)g=temper({t:'weapon',i:rnd(WEAPONS.length),r:0},deep+3);
+      g.r=Math.min(RARITY.length-1,Math.max(g.r||0,rollRarity(deep+3)+1));}
+    g=temper(g,deep+3);g.cursed=null;return g;};
+  var G=gear();
+  cards.push({t:'Something they kept back.',s:itemName(G),go:function(){learnGear(G);G.named=1;giveOrDrop(G);
+    finish('They give you '+itemName(G)+'.');}});
+  if(size==='big'){
+    var S=JOB_STATS[rnd(JOB_STATS.length)];
+    cards.push({t:'What they can do for you.',s:S.t,go:function(){S.go();finish('Something of theirs goes into you and stays: '+S.t+'.');}});
+    cards.push({t:'What they know.',s:'one more thing learned — choose it now',go:function(){P.picks=(P.picks||0)+1;closeUI();
+      say('They show you something nobody showed you before.','good');setTimeout(function(){if(!ui&&!over)offerSkills();},50);}});
+  } else {
+    var gp=coin(80+deep*22);
+    cards.push({t:'Their purse.',s:gp+' gold',go:function(){P.gold+=gp;finish('+'+gp+' gold.');}});
+  }
+  modal({title:npcDef2(n).n,flavor:'"Take one. I would give you all of it, but I need the rest to get out of here."',cards:cards});
+}
+/* someone found alive, on the way back up */
+function strayedTalk(n){
+  var J=jobById(n.job);
+  if(!J||J.st==='done'||J.st==='back'){
+    modal({title:n.nm||'Someone',flavor:'"I owe you the stair. I will not forget it."',cards:[
+      {t:'Step past them.',s:'Swap places and carry on',go:function(){closeUI();stepPast(n);}},
+      {t:'Walk on.',s:'',go:function(){closeUI();paint();}}]});return;}
+  var first=J.st==='open';
+  modal({title:n.nm,flavor:first
+    ?'"'+cap(J.gn)+' sent you? Floor '+J.gd+'?" They are on their feet before you have finished. "Then I am going up. Lead. I will stay close — keep whatever lives here off me and I will keep up."'
+    :(n.follow?'"Behind you."':'"Still here. Are we going?"'),
+    cards:[
+      {t:'Stay close to me.',s:'they follow you, and take the stairs with you when they are near',go:function(){n.follow=1;J.st='escort';closeUI();say(n.nm+' falls in behind you.','good');paint();}},
+      {t:'Wait here.',s:'they stay where they are until you come back for them',go:function(){n.follow=0;if(J.st==='open')J.st='escort';closeUI();say(n.nm+' stays where they are.','warn');paint();}},
+      {t:'Step past them.',s:'Swap places and carry on',go:function(){closeUI();stepPast(n);}}]});
+}
+function followStep(n){
+  var dist=Math.max(Math.abs(n.x-P.x),Math.abs(n.y-P.y));
+  if(dist<=1)return;
+  var f=chaseField(),W=MAP_W,here=f.d[n.y*W+n.x],best=null,bd=here<0?99999:here;
+  [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(function(v){
+    var nx=n.x+v[0],ny=n.y+v[1];if(nx<0||ny<0||nx>=W||ny>=MAP_H)return;
+    var dv=f.d[ny*W+nx];if(dv>=0&&dv<bd){bd=dv;best=v;}});
+  if(best&&npcStep(n,best[0],best[1]))return;
+  npcStep(n,Math.sign(P.x-n.x),Math.sign(P.y-n.y));
+}
+/* brought up to the floor they were sent from */
+function escortArrive(){
+  npcs.forEach(function(n){
+    if(n.role!=='strayed'||!n.follow)return;
+    var J=jobById(n.job);if(!J||J.gd!==depth)return;
+    var g=npcs.filter(function(z){return z.job===J.id&&z!==n;})[0];
+    n.follow=0;
+    if(!g){J.st='failed';say(n.nm+' looks for '+J.gn+' and does not find them. "Then it was for nothing," they say, and sit down.','warn');return;}
+    var q=null;var ox=P.x,oy=P.y;P.x=-9;P.y=-9;
+    for(var k=0;k<6&&!q;k++)q=nearFree27(g.x,g.y,1+Math.floor(k/2));
+    P.x=ox;P.y=oy;
+    if(q){n.x=q.x;n.y=q.y;}
+    J.st='back';
+    say('"This is the floor. I know the way from here." '+n.nm+' goes ahead of you to find '+J.gn+'.','good');
+  });
+}
+function jobFalls(n){
+  if(n.role==='strayed'){var J=jobById(n.job);if(J&&(J.st==='escort'||J.st==='open')){
+      J.st='token';var tk={t:'supply',i:supIdx('errand'),job:J.id,en:J.who+'’s '+J.keep,tok:1,x:n.x,y:n.y};loot.push(tk);
+      say(n.nm+' is dead. There is nothing to take back up to '+J.gn+' now but the news — and '+tk.en+'.','hit');}}
+  else if(n.job){var J2=jobById(n.job);if(J2&&J2.st!=='done'){J2.st='failed';say('Whatever you promised '+J2.gn+' does not matter now.','warn');}}
+}
+function jobLines(){
+  var out=[];
+  jobs().forEach(function(J){
+    if(J.st==='done'||J.st==='failed')return;
+    if(J.kind==='fetch')out.push((jobItem(J)?'✓ ':'')+'Bring '+J.what+' from floor '+J.tf+' up to '+J.gn+' on floor '+J.gd+(jobItem(J)?' — you have it.':'.'));
+    else if(J.st==='back')out.push(J.who+' is back with '+J.gn+' on floor '+J.gd+'. Go and see them.');
+    else if(J.st==='token')out.push('Take '+J.who+'’s '+J.keep+' up to '+J.gn+' on floor '+J.gd+'.');
+    else if(J.st==='escort')out.push('Bring '+J.who+' up to '+J.gn+' on floor '+J.gd+'.');
+    else out.push('Find '+J.who+' ('+J.gn+'’s '+J.rel.replace(/^my /,'')+') on floor '+J.tf+'.');
+  });
+  Object.keys(P.vaults||{}).forEach(function(k){var V=P.vaults[k];if(V.open)return;
+    var have=P.carry.some(function(c){return c.t==='supply'&&c.vf===+k;});
+    if(levels[k]||+k===depth)out.push('A sealed vault on floor '+k+': it wants '+V.n+(have?' — you have it.':'.'));});
+  jobs().forEach(function(J){});
+  return out;
+}
+
+/* ─── special orders and fresh stock ─── */
+var ORDER_WORDS={food:'a crate of the good stores — what they keep for themselves',relic:'something put by for a buyer who never came',
+ paper:'a binding nobody else down here has',iron:'a piece made to order, two grades up',general:'something good, fetched from further down'};
+function orderItems(kind,L){
+  var out=[];
+  switch(kind){
+    case 'food':
+      out.push(supplyOf(function(S){return S.rare;},L));
+      out.push(supplyOf(function(S){return S.eff==='bright'||S.eff==='brimming'||S.eff==='mending';},L));
+      out.push(supplyOf(function(S){var E=S.eff&&PROV_EFF[S.eff];return !S.plain&&(S.food||S.drink)&&E&&E.good;},L));break;
+    case 'relic':
+      out.push(chance(50)?{t:'ring',i:rnd(RINGS.length)}:{t:'potion',i:lookOfPotion(['giant','wellspring','fleet','proof'][rnd(4)])});break;
+    case 'paper':
+      out.push({t:'book',i:bookSpell(L)});out.push({t:'scroll',i:rnd(SPELLS.length)});break;
+    case 'iron':{
+      var g=temper({t:chance(55)?'weapon':'armor',i:0,r:0},L);
+      if(g.t==='weapon')g.i=rnd(WEAPONS.length);else g.i=rnd(ARMORS.length);
+      g.r=Math.min(RARITY.length-1,rollRarity(L)+2);g.cursed=null;out.push(temper(g,L));break;}
+    default:{var it=makeItem(L+2);if(it.t==='weapon'||it.t==='armor')it.r=Math.min(RARITY.length-1,(it.r||0)+1);it.cursed=null;out.push(it);}
+  }
+  return out;
+}
+function orderMenu(n,def,kind){
+  var L=deepestWalked()+4;
+  if(!n.quote||n.quote.d!==deepestWalked()){
+    var items=orderItems(kind,L);
+    var price=Math.round(items.reduce(function(a,it){return a+priceOf(it,L);},0)*0.8);
+    n.quote={d:deepestWalked(),items:items,price:Math.max(60,Math.round(price*(1-buyCut())))};
+  }
+  var Q=n.quote,ready=deepestWalked()+2;
+  modal({title:def.n+' · you have '+P.gold+' gold',
+    flavor:'"I can get you '+ORDER_WORDS[kind]+'. Not today. It comes down after you have been further down yourself — two floors deeper than you have been, floor '+ready+' — and come back up here to me. You pay now. You find out what it is when it is in your hands."',
+    cards:[{t:'Order it — '+Q.price+'g',s:P.gold<Q.price?'you cannot pay':'ready once you have reached floor '+ready+' and come back',dim:P.gold<Q.price,go:function(){
+        if(P.gold<Q.price)return;
+        P.gold-=Q.price;runStats().spent=(runStats().spent||0)+Q.price;
+        n.order={items:Q.items,at:ready,fl:depth};n.quote=null;
+        say('You pay '+Q.price+' gold. "Floor '+ready+', then back here. I will have it."','find');
+        openShop(n,def);}},
+      {t:'Back',s:'',go:function(){openShop(n,def);}}]});
+}
+function orderReady(n){
+  if(!n.order||deepestWalked()<n.order.at)return false;
+  var got=[];
+  n.order.items.forEach(function(it){delete it.price;
+    if(it.t==='weapon'||it.t==='armor'||it.t==='unique'){learnGear(it);it.named=1;}
+    else if(identifiable2(it))learnItem(it);
+    giveOrDrop(it,1);got.push(itemName(it));});
+  n.order=null;
+  say('"Your order." It is '+got.join(', ')+'.','find');
+  return true;
+}
+function restock27(n,kind){
+  var deep=deepestWalked();
+  if(n.rsAt===undefined){n.rsAt=deep+2;return false;}
+  if(deep<n.rsAt)return false;
+  var k=2+rnd(3);
+  for(var i=0;i<k;i++){var it=stockItem(kind,deep);it.price=priceOf(it,depth);it.pv=PRICE_V;n.stock.push(it);}
+  n.rsAt=deep+2;
+  say('They have had more brought down since you were last here — '+k+' new things on the shelf.','find');
+  return true;
+}
+
+/* ─── a gift for leaving a floor quickly (the target is never shown) ─── */
+function stairDist27(){
+  var W=MAP_W,H=MAP_H,d=new Int16Array(W*H).fill(-1),q=[P.y*W+P.x],h=0;d[P.y*W+P.x]=0;
+  while(h<q.length){var c=q[h++],cx=c%W,cy=(c-cx)/W;
+    if(map[cy][cx]===T_DOWN)return d[c];
+    for(var k=0;k<4;k++){var nx=cx+[1,-1,0,0][k],ny=cy+[0,0,1,-1][k];
+      if(nx<1||ny<1||nx>=W-1||ny>=H-1)continue;var n=ny*W+nx;if(d[n]>=0)continue;
+      var t=map[ny][nx];if(SOLID[t]&&!DOORISH[t]&&t!==T_HIDDEN&&t!==T_CRACK)continue;
+      d[n]=d[c]+1;q.push(n);}}
+  return -1;
+}
+function quickStart(d){
+  if(!P||d>=LAST)return;
+  P.qk=P.qk||{};if(P.qk[d])return;
+  var dist=stairDist27();
+  P.qk[d]={t:turns,par:dist<0?420:Math.round(70+dist*5+(FL&&FL.lock?90:0))};
+}
+function quickCheck(d){
+  var Q=P.qk&&P.qk[d];if(!Q||Q.done)return;
+  Q.done=1;
+  var took=turns-Q.t;
+  if(took>Q.par)return;
+  var big=took<=Q.par*0.6,dd=depth;
+  runStats().quick=(runStats().quick||0)+1;
+  var g=coin(20+dd*9+(big?dd*6:0));P.gold+=g;
+  var bits=['+'+g+' gold'];
+  var r=rnd(3);
+  if(r===0){var f=Math.min(P.focMax-P.foc,3+Math.floor(dd/4));if(f>0){P.foc+=f;bits.push('+'+f+' FP');}else r=1;}
+  if(r===1){var h=Math.min(P.maxHp-P.hp,Math.round(P.maxHp*0.15));if(h>0){P.hp+=h;bits.push('+'+h+' health');}}
+  if(big){var it=makeItem(dd+3);if(it.t==='weapon'||it.t==='armor')it.cursed=null;
+    if(giveOrDrop(it,1)==='floor')bits.push(itemName(it)+' (at your feet)');else bits.push(itemName(it));}
+  say((big?'You came down fast, and something at the foot of the stair was left for exactly that: '
+      :'You made good time. Somebody left something at the foot of the stair for the quick ones: ')+bits.join(', ')+'.','find');
+  if(r===2)gainXp(6+dd*3);
+}
+
+/* ─── on the map: the people you have found ─── */
+var SHOP_WORDS={general:'sells a bit of everything, and names anything',food:'sells food and drink, and names it',
+ paper:'sells scrolls and books, and names workings',iron:'sells weapons, armour and arrows, mends, and names steel',
+ relic:'sells flasks, rings and relics, and names them',keys:'sells keys and picks'};
+function npcInfo(n){
+  var D=npcGlyph(n)||{};
+  var nm=n.nm||D.n||'someone';
+  var bits=[cap(nm)];
+  if(n.teller)bits.push('has a long story to tell');
+  else if(D.shop)bits.push('a trader — '+(SHOP_WORDS[D.shop]||'sells things'));
+  if(n.order)bits.push('your order is with them (ready after floor '+n.order.at+')');
+  var J=n.job?jobById(n.job):null;
+  if(J&&J.st!=='done'&&J.st!=='failed'){
+    if(n.role==='strayed')bits.push(J.st==='back'?'brought back up':'needs bringing up to floor '+J.gd);
+    else bits.push(J.kind==='fetch'?'waiting for '+J.what+' from floor '+J.tf:'waiting for word of '+J.who);
+  } else if(n.offer&&JOB_ROLES[n.role])bits.push('wanted to ask you something');
+  return bits.join(' · ');
+}
+function npcOnMap(d,x,y){
+  var F=floorData(d);if(!F)return null;
+  var best=null,bd=9;
+  (F.npcs||[]).forEach(function(n){
+    if(n.found===0)return;
+    if(!F.seen[n.y]||!F.seen[n.y][n.x])return;
+    var dd=Math.max(Math.abs(n.x-x),Math.abs(n.y-y));
+    if(dd<=1&&dd<bd){bd=dd;best=n;}});
+  return best;
+}
+function vaultNote(d){
+  var V=vaultOf(d);if(!V)return '';
+  var F=d===depth?FL:(levels[d]&&levels[d].fl);var S=F&&F.sv;if(!S)return '';
+  var Fd=floorData(d);if(!Fd||!Fd.seen[S.dy]||!Fd.seen[S.dy][S.dx])return '';
+  if(V.open)return ' The vault (∎) on this floor is open.';
+  var have=P.carry.some(function(c){return c.t==='supply'&&c.vf===d;});
+  return ' A sealed vault (∎) on this floor wants '+V.n+(have?' — you are carrying it.':' — somewhere a few floors below.');
 }
 
 $('goBtn').onclick=titleScreen;
