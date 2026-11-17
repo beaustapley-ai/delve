@@ -1,6 +1,6 @@
-# Delve — handoff notes (current: v0.26.2, 16 Nov 2026)
+# Delve — handoff notes (current: v0.26.3, 16 Nov 2026)
 
-The files in this project are the latest build (`delve/Index.html` is v0.26.2 — check `GAME_VERSION='0.26.2'`). **Start every new chat from these:**
+The files in this project are the latest build (`delve/Index.html` is v0.26.3 — check `GAME_VERSION='0.26.3'`). **Start every new chat from these:**
 
 - `delve/Index.html` — the whole game (HTML/CSS/JS, one file). Same file is `index.html` on GitHub and `Index` in Apps Script. `GAME_VERSION` and the `VERSIONS` changelog live near the "versions" section.
 - `delve/Code.gs` — Apps Script back end (leaderboard, keep, accounts, recordings). Unchanged since v0.23. Note: its `topRuns()` is capped at `TOP_N = 50` — the page no longer uses it for the board (see `allRuns` below); it's only the fallback and the return value of `submitRun`.
@@ -29,6 +29,13 @@ Diagnosis on 16 Nov (via the built-in browser on the GitHub page, calling the /e
 **Every run by every player is fetched and visible to everyone.** Never filter or hide board entries by player or account. The table draws the top `REC_SHOW = 100` rows *in the current sort order* (Beau's call), but the whole board is always fetched so each run's # is its place out of all runs and tab counts are right; sorting by another column (Player, When…) reaches every run. (v0.26.1 fixed the top-50 cap that hid lower-scoring players like Zaxaro.)
 - Page: `DELVE_FETCH_BOARD` calls `allRuns` (falls back to `topRuns` if the back end is older). `recordScreen` re-fetches every time it opens (cached rows drawn first, then refreshed, scroll kept). `boardRows` ranks against the full list, draws the first `REC_SHOW`, and adds a "Showing the first 100 of N" note. `mergeRuns` dedupes only on a non-zero `when`, so rows with no time never swallow each other.
 
+## Brightness (v0.26.3)
+Playtest feedback: on phones the game read dimmer than other apps, so players turned the phone up and were blinded on leaving. **Settings → Display** (new tab, `displayPane`, between Layout and Sound):
+- Brightness slider 80–180% (`BRIGHT.b`), quick set Normal/Brighter/Bright/Brightest (1, 1.25, 1.5, 1.75), Shadows Off/A little/More (`BRIGHT.lift` 0/1/2 → `contrast(0.88/0.76)` to lift near-black), colour swatch strip, Set to defaults.
+- Applied as a CSS `filter` on `<html>` (`DELVE_BRIGHT_FILTER` in a tiny `<script>` at the top of `<head>`, so it's on before the first paint; `brightApply`/`brightSave`). No filter at all when at defaults.
+- Stored per device in `localStorage['delve.bright']` — deliberately **not** in the account/`keysJson` (phone and desktop want different values).
+- Tested (iPhone 13 emulation): persists across reload, defaults clears the key, modals/fixed overlays unaffected, no console errors.
+
 ## Code conventions worth knowing
 - Map tiles packed one char per tile via `tileCh`/`chTile`; ids ≥36 use `TILE_EXTRA`.
 - `SUPPLY`, `TRAPS`, `POTIONS`, `SPELLS`, `MONS`, `WANDS` (and other item tables) are indexed in saves — only ever **append**. `progressCompat()` pads `P.potMap`/`pLook`, and (v0.26) `bLook`/`sLook` for appended spells; `BOOK_LOOKS`/`SCROLL_LOOKS` must have at least as many entries as `SPELLS`.
@@ -37,6 +44,7 @@ Diagnosis on 16 Nov (via the built-in browser on the GitHub page, calling the /e
 - Server calls: `window.DELVE_ACC(method,args,cb)`; GitHub fetch shim fakes `google.script.run`.
 - HTML attributes don't interpret JS escapes — use entities.
 - Most v0.26 code lives in two blocks: the prayer block (where `/* ═══ v0.26 — gods who keep their own counsel` starts, replacing the old favour code) and a block just before `$('goBtn').onclick=titleScreen` (see-invisible, statuses, FX, new spells, map rewards).
+- Settings tabs: `settingsScreen(tab,back)` with panes `keysPane`, `buttonsPane`, `layoutPane` (`LAY`, synced to account), `displayPane` (`BRIGHT`, device only), `soundPane` (`SND`), `accountPane`. Testing a run: `begin(CLASSES[i], QUESTS[j])`.
 
 ## v0.26 systems
 - **Prayer (Nethack-like, hidden).** `P.god` is rolled per run by `rollGod(c)` from 6 `GODS` (count, rule, choir, lamp, knot, ash; each has `about`, `boon`, `wrath`). `godMind()` lazily fills `P.favour.likes[2]`, `.hates[1–2]` (ids in `DEEDS`: blood, distance, working, haste, patience, greed, thirst, pain), `.humour` (`HUMOURS`: proud, generous, fickle, stern, merciful), plus the old gift tastes (`good`, `bad`, `read`). Hidden numbers: `P.standing` (−100..100), `P.prayT` (turn it is ready again), `P.godAnger`, `P.pester`, `P.greedN`.
@@ -55,10 +63,12 @@ Diagnosis on 16 Nov (via the built-in browser on the GitHub page, calling the /e
 
 ## Testing
 Playwright + headless Chromium against `file:///…/Index.html`. v0.26: 24-floor generation sweep (no gate blocks a stair, every secret region has loot), every prayer request under several states, clue/deed/offer paths, all new spells against dummy monsters, FX screenshots mid-flight, see-invisible display, v0.25 save loaded into v0.26, 7-class random bot (shallow and deep) with save/load.
+v0.26.3: Display tab in iPhone 13 emulation — slider/quick set/shadows set the filter and `delve.bright`, reload keeps it (head script), defaults removes it; in-game screenshot at 150% + lift; no page errors.
 v0.26.2: local Zaxaro runs missing from a stubbed board are sent on load (an already-shared run with rounded time is not resent); failing submitRun shows the error in the record and retries on reopen.
 v0.26.1: stubbed `google.script.run` (addInitScript Proxy) with 152 runs across 4 players — `allRuns` path shows all 152 incl. every low-scoring player and two `when:0` rows; old `topRuns` fallback reproduces the 50-row cap; re-opening the record re-fetches.
 
 ## Recent versions
+- 0.26.3 — brightness: Settings → Display (slider 80–180%, quick set, Shadows lift), CSS filter on `<html>`, per device.
 - 0.26.2 — catch-up sync: `syncRunsUp(board)` sends any local `delve.records` the shared board lacks (`runsNotShared`, matched on `when` ±1 s; server dedupes on Run id). Runs 2.5 s after load (bridge block) and whenever the record opens; `DELVE_POST(run, done)` now reports back and stores the last failure in `delve.postErr`; the record shows send failures.
 - 0.26.1 — leaderboard fetches every run by everyone (server `allRuns` in Api.gs), ranks against all of them, shows top 100 in the current sort; record re-fetches each time it opens.
 - 0.26 — prayer rebuilt (per-run god and hidden wants, clues, needs over asks, anger); 8 new spells; status rings/particles on enemies; drawn shots and impacts; spellbooks every ~3 floors and in shops; FP-draining enemies; see-invisible enemies; gates only guard side areas, unlock/break stone open them; rewards in side rooms and secret areas; item plates.
