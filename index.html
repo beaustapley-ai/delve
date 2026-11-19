@@ -1948,22 +1948,22 @@ var GIFT_READS=[
 /* ═══════════════ gods ═══════════════ */
 
 var GODS=[
- {id:'count',n:'the Keeper of Count',about:'the tally of everything that went down the stair, and how it ends',likes:'',
+ {id:'count',n:'the Keeper of Count',about:'the tally of everything that went down the stair, and how it ends',likes:'',dl:['greed','patience'],dh:['thirst'],
   boon:function(){P.maxHp+=8;P.hp=P.maxHp;say('You are counted, and the count is generous. +8 maximum health.','good');},
   wrath:function(){afflict('curse',40);say('You are counted, and found uneven.','hit');}},
- {id:'rule',n:'the Old Rule',about:'what is hungry, and moves',likes:'',
+ {id:'rule',n:'the Old Rule',about:'what is hungry, and moves',likes:'',dl:['haste','blood'],dh:['patience'],
   boon:function(){P.atk+=2;P.hp=Math.min(P.maxHp,P.hp+18);say('What is hungry moves. You are permitted to move. +2 attack.','good');},
   wrath:function(){afflict('bleed',16);say('What is hungry moves. You were standing still.','hit');}},
- {id:'choir',n:'the Drowned Choir',about:'the ones who went under singing, and still are',likes:'',
+ {id:'choir',n:'the Drowned Choir',about:'the ones who went under singing, and still are',likes:'',dl:['working','thirst'],dh:['greed'],
   boon:function(){cureAll();P.hp=P.maxHp;P.focMax+=2;P.foc=P.focMax;say('You are held, briefly, and put back down whole. +2 maximum FP.','good');},
   wrath:function(){P.hp=Math.max(1,Math.floor(P.hp*0.6));say('The water does not distinguish a plea from a noise.','hit');}},
- {id:'lamp',n:'the Lamp Left Burning',about:'a light somebody left for whoever was still coming down',likes:'',
+ {id:'lamp',n:'the Lamp Left Burning',about:'a light somebody left for whoever was still coming down',likes:'',dl:['distance','working'],dh:['blood'],
   boon:function(){P.sightExtra=(P.sightExtra||0)+1;revealFloor();say('The dark gives a pace back to you, for good, and the floor is lit for you.','good');},
   wrath:function(){afflict('blind',14);say('The lamp is turned away from you.','hit');}},
- {id:'knot',n:'the Mother of Knots',about:'what holds, and what is held, and the rope between',likes:'',
+ {id:'knot',n:'the Mother of Knots',about:'what holds, and what is held, and the rope between',likes:'',dl:['blood','pain'],dh:['distance','haste'],
   boon:function(){P.def+=2;say('Something is tied round you and pulled tight. +2 defence, for good.','good');},
   wrath:function(){afflict('held',4);say('A knot you cannot see is pulled tight around your legs.','hit');}},
- {id:'ash',n:'the Ash Saint',about:'what is left once the burning is done',likes:'',
+ {id:'ash',n:'the Ash Saint',about:'what is left once the burning is done',likes:'',dl:['working','pain'],dh:['thirst','patience'],
   boon:function(){if(!grantResist('burn','The Ash Saint')){P.maxHp+=6;P.hp+=6;say('+6 maximum health.','good');}},
   wrath:function(){afflict('burn',10);say('The Saint remembers what you are made of: kindling.','hit');}}
 ];
@@ -2730,23 +2730,23 @@ var CLASSES=[
 
 {id:'idiot',n:'Village Idiot',tag:'no trade, no training, no quit',
  hand:['heavy','blade'],poor:['bow','staff'],
- t:'A club somebody left in a ditch, no coat and no trade. What you have is time, a willingness to keep walking, and dumb luck: one find in twenty comes out a step rarer.',
+ t:'A club somebody left in a ditch, no coat and no trade. What you have is time, a willingness to keep walking, and dumb luck. In numbers: you need 70% more experience than anyone else for each level; bows and staves are clumsy in your hands (\u221240% of their attack); and one find in twenty comes out a step rarer than it rolled.',
  lit:18,hp:15,atk:5,def:0,sight:7,foc:4,ammo:0,gold:8,god:'rule',w:'a club',ar:null,
  slowXp:1.7,luck:0.05,
- a1:{n:'Keep Going',c:1,t:'shrug off two turns of whatever is working on you'},
- a2:{n:'Sit Down',c:1,t:'stop where you are and get a little of yourself back'},
+ a1:{n:'Keep Going',c:1,t:'every bleed, poison, burn, muddle, curse, hold, blindness and slow on you loses 2 turns'},
+ a2:{n:'Sit Down',c:1,t:'with nothing on you: heal 4 + half your level, and +1 FP'},
  branches:['Grit','Luck','Learning'],
  skills:[
   {n:'Thick Skull',br:0,lv:1,t:'+3 defence, and 1 more for every five floors down you are when you take it.',ap:function(){P.def+=3+Math.floor((depth||1)/5);}},
   {n:'Nothing To Lose',br:0,lv:3,req:'Thick Skull',t:'+4 attack, and 1 more for every five floors down you are when you take it.',ap:function(){P.atk+=4+Math.floor((depth||1)/5);}},
-  {n:'Still Here',br:0,lv:5,req:'Nothing To Lose',t:'+18% maximum health (at least 20), healed the same.',ap:function(){hpPct(0.18,20);}},
+  {n:'Still Here',br:0,lv:5,req:'Nothing To Lose',t:'A one-time, permanent raise: +18% to your maximum health as it stands when you take it (at least +20), and you heal by the same amount.',ap:function(){hpPct(0.18,20);}},
   {n:'Too Dumb To Die',br:0,lv:8,req:'Still Here',t:'Once a floor, a blow that would have killed you leaves you standing on 1.',ap:function(){P.sk.cheat=1;}},
-  {n:'Lucky',br:1,lv:1,t:'What you find is better than it should be.',ap:function(){P.greed=true;}},
+  {n:'Lucky',br:1,lv:1,t:'More to find: enemies are 10 points likelier to drop an item, and searched furniture 8 points likelier to have something in it.',ap:function(){P.greed=true;}},
   {n:'Strong Back',br:1,lv:3,req:'Lucky',t:'Ten more things in the pack.',ap:function(){P.packBonus=(P.packBonus||0)+10;}},
   {n:'Fool\u2019s Luck',br:1,lv:6,req:'Strong Back',t:'One blow in seven that would land on you misses entirely.',ap:function(){P.sk.dodge=(P.sk.dodge||0)+0.14;}},
-  {n:'Slow Learner',br:2,lv:1,t:'You start gaining as the others do. It took long enough.',ap:function(){P.sk.slowLearn=1;}},
-  {n:'Picked It Up',br:2,lv:3,req:'Slow Learner',t:'Nothing is strange in your hands any more.',ap:function(){P.sk.anyHands=1;}},
-  {n:'Odd Jobs',br:2,lv:5,req:'Picked It Up',t:'You mend your own metal and wood, at a rest.',ap:function(){P.sk.mend='both';}},
+  {n:'Slow Learner',br:2,lv:1,t:'You catch up, mostly. Each level now takes 15% more experience than other classes need, instead of 70% more. It took long enough.',ap:function(){P.sk.slowLearn=1;}},
+  {n:'Picked It Up',br:2,lv:3,req:'Slow Learner',t:'Bows and staves stop being clumsy for you: no more \u221240% to their attack. They count as ordinary weapons (not taught ones, so no +15% either).',ap:function(){P.sk.anyHands=1;}},
+  {n:'Odd Jobs',br:2,lv:5,req:'Picked It Up',t:'Each rest, you mend one worn metal or wooden thing you carry: notches, warping and scorching gone, one step of rust off.',ap:function(){P.sk.mend='both';}},
   {n:'Worked It Out',br:2,lv:7,req:'Odd Jobs',t:'+6 maximum focus, filled.',ap:function(){P.focMax+=6;P.foc=P.focMax;}}]},
 
 {id:'vigil',n:'Vigil',tag:'thin, sleepless, still standing',
@@ -6720,7 +6720,8 @@ function enterLevel(d,how,idx){
   runStats().fl[d]=1;
   stashLevel();
   var fresh=!levels[d];
-  if(how==='down'&&fresh&&d>1&&P.floorIn!==undefined&&turns-P.floorIn<230)godDeed('haste',1);
+  if(how==='down'&&fresh&&d>1)hasteCheck();
+  if(P)P.arrT=turns;
   if(fresh){P.floorIn=turns;if(P.standing>40)P.standing=Math.round(40+(P.standing-40)*0.85);}
   depth=d;
   if(levels[d]){unpackLevel(levels[d]);if(walked)healReturning();}
@@ -8361,6 +8362,7 @@ function rollFavour(){
 }
 function godTruth(){
   if(!P||!P.favour||!P.favour.likes)return [];
+  godLoreRun();
   var f=P.favour,nm=function(id){return DEEDS[id]?DEEDS[id].n:id;};
   var s=P.standing||0;
   return ['It liked: '+f.likes.map(nm).join(', and ')+'.',
@@ -8429,7 +8431,7 @@ var DEEDS={
  working:{n:'casting workings',as:'As the working leaves you',
    like:['It leaned in every time I spoke a working.','Say the old words often. It listens for them.','It loved the workings. Every spell was a prayer to it.'],
    hate:['It hated the workings. Every spell I spoke, it turned further from me.','Do not work spells where it can hear. It thinks them theft.','The words of a working are an insult to it.']},
- haste:{n:'going down quickly',as:'As you go down so soon after coming in',
+ haste:{n:'going down quickly',as:'As you hurry on down the stair',
    like:['It wanted me going down, always down, and quickly.','Do not linger on a floor. It likes you hurrying.','The faster I went down, the closer it came.'],
    hate:['It does not like to be rushed past. Stay on a floor a while.','I ran down the stair and it would not hear me after.','Hurry, and it will not follow you.']},
  patience:{n:'searching and resting',as:'As you take your time',
@@ -8457,15 +8459,49 @@ var HUMOUR_IDS=['proud','generous','fickle','stern','merciful'];
 var GOD_WARM=['something a long way off approves','you feel watched, and kindly','the dark around you is a little less heavy','you feel, briefly, counted in your own favour'];
 var GOD_COLD=['something a long way off turns its back','a cold settles between your shoulders','you feel watched, and not kindly','the dark seems to lean away from you'];
 
+/* v0.28: going down quickly. A god that LIKES it is pleased by any prompt
+   descent (off a floor you reached under 230 turns ago). A god that HATES it
+   only minds you skipping a floor: you got here under 120 turns ago, have seen
+   less than a third of it, and you are not hurt or being chased — going down
+   to get away, or to find somewhere quiet to rest, is not rushing. */
+function seenShare(){
+  if(!map||!seen)return 1;
+  var a=0,b=0;
+  for(var y=0;y<map.length;y++)for(var x=0;x<map[y].length;x++){
+    var t=map[y][x];if(t===T_WALL||t===T_HARD)continue;
+    a++;if(seen[y]&&seen[y][x])b++;}
+  return a?b/a:1;
+}
+function hasteCheck(){
+  if(!P||P.floorIn===undefined)return;
+  var f=godMind();
+  var since=turns-(P.arrT!==undefined?Math.max(P.arrT,P.floorIn):P.floorIn);
+  if(f.likes.indexOf('haste')>=0){if(turns-P.floorIn<230)godDeed('haste',1);return;}
+  if(f.hates.indexOf('haste')<0)return;
+  if(since>=120||seenShare()>=0.34)return;
+  if(P.hp<P.maxHp*0.6)return;
+  if(mons.some(function(m){return !m.watcher&&m.awake&&Math.max(Math.abs(m.x-P.x),Math.abs(m.y-P.y))<=8;}))return;
+  godDeed('haste',1);
+}
 function godOf(){return GODS.filter(function(x){return x.id===P.god;})[0]||GODS[0];}
 /* what it wants this run: rolled once, never shown, filled in on old saves */
 function godMind(){
   var f=P.favour||(P.favour=rollFavour());
-  if(!f.likes){
-    var ds=shuffle(DEED_IDS.slice());
-    f.likes=[ds[0],ds[1]];f.hates=chance(55)?[ds[2],ds[3]]:[ds[2]];
-    f.humour=HUMOUR_IDS[rnd(HUMOUR_IDS.length)];
+  /* v0.28: what a god likes and will not abide is the same every run — it is
+     who the god is. Its temper, and how it takes gifts, are still drawn fresh. */
+  var G0=godOf();
+  if(!f.humour)f.humour=HUMOUR_IDS[rnd(HUMOUR_IDS.length)];
+  if(G0.dl&&f.fixedFor!==G0.id){
+    f.likes=G0.dl.slice();f.hates=G0.dh.slice();f.fixedFor=G0.id;
+    /* an older save rolled its own: forget clues that are no longer true */
+    if(P.godKnow)P.godKnow=P.godKnow.filter(function(q){
+      var m=/^(like|hate|felt):(.*)$/.exec(q.k);if(!m)return true;
+      if(m[1]==='like')return f.likes.indexOf(m[2])>=0;
+      if(m[1]==='hate')return f.hates.indexOf(m[2])>=0;
+      return f.likes.indexOf(m[2])>=0||f.hates.indexOf(m[2])>=0;});
+    if(P.deedSign)Object.keys(P.deedSign).forEach(function(k){if(f.likes.indexOf(k)<0&&f.hates.indexOf(k)<0)delete P.deedSign[k];});
   }
+  if(!f.likes){var ds=shuffle(DEED_IDS.slice());f.likes=[ds[0],ds[1]];f.hates=[ds[2]];}
   if(P.standing===undefined){P.standing=Math.min(40,Math.round((P.devotion||0)/3))+rnd(6);}
   if(P.prayT===undefined)P.prayT=turns+120+rnd(160);
   if(!P.godKnow)P.godKnow=[];
@@ -8523,7 +8559,26 @@ function godNote(k,t){
   godMind();
   if(P.godKnow.some(function(q){return q.k===k;}))return false;
   P.godKnow.push({k:k,t:t,d:depth});
+  godLoreAdd(k);
   return true;
+}
+/* what you have worked out about each god, kept between runs on this device —
+   only likes and dislikes, since those are the same every time */
+function godLoreAdd(k,gid){
+  var m=/^(like|hate|felt):(.*)$/.exec(k||'');if(!m||!P)return;
+  var f=P.favour||{},kind=m[1];
+  if(kind==='felt')kind=(f.likes||[]).indexOf(m[2])>=0?'like':((f.hates||[]).indexOf(m[2])>=0?'hate':'');
+  if(!kind||!DEEDS[m[2]])return;
+  var L=load('delve.godlore',{}),id=gid||P.god,g=L[id]||(L[id]={like:[],hate:[]});
+  if(g[kind].indexOf(m[2])<0){g[kind].push(m[2]);store('delve.godlore',L);}
+}
+function godLoreRun(){
+  if(!P||!P.favour||!P.favour.likes||P.godLoreDone)return;
+  P.godLoreDone=1;
+  P.favour.likes.forEach(function(id){godLoreAdd('like:'+id);});
+  P.favour.hates.forEach(function(id){godLoreAdd('hate:'+id);});
+  var L=load('delve.godlore',{}),g=L[P.god]||(L[P.god]={like:[],hate:[]});
+  g.runs=(g.runs||0)+1;store('delve.godlore',L);
 }
 /* one true thing about this run's god, preferring something not yet known */
 function godClue(){
@@ -8717,7 +8772,7 @@ var PRAYERS=[
  {id:'trust',n:'Whatever you see I need',t:'leave it to the god',tier:0,need:function(){return true;},go:function(){return '';}}
 ];
 /* a level handed down rather than earned */
-function prayLevelUp(){gainXp(Math.max(1,Math.ceil((P.next-P.xp)*((P.cl&&P.cl.slowXp)||((P.sk&&P.sk.slowLearn)?1.15:1)))+1));}
+function prayLevelUp(){gainXp(Math.max(1,Math.ceil((P.next-P.xp)*((P.sk&&P.sk.slowLearn)?1.15:((P.cl&&P.cl.slowXp)||1)))+1));}
 /* a level taken back: the health and focus it brought go with it */
 function prayLevelDown(){
   if(P.lvl<=1){P.xp=0;return false;}
@@ -8866,7 +8921,7 @@ function pray(){
     flavor:cap(g.n)+' — '+(g.about||'')+'.\n\n'+
       'Ask for what you want. It answers what it thinks you need: it can see your pack, and this floor, and what is coming, and you cannot. It does not like being asked often, and it will not tell you how often is too often.'+
       (onAltar?'\n\nOn the altar: '+godMood()+' '+godWait()+' You can lay gifts here.':'\n\nOn an altar you could feel how it regards you, and lay gifts.')+
-      (lines.length?'\n\nWhat you know of it:\n• '+lines.join('\n• '):'\n\nYou know nothing yet of what it wants this time. Altars, and scraps of other people’s prayers, will tell you.'),
+      (lines.length?'\n\nWhat you know of it:\n• '+lines.join('\n• '):'\n\nYou know nothing yet this run of what it wants. Altars, and scraps of other people’s prayers, will tell you.'),
     cards:cards});
   $('veilFlavor').style.whiteSpace='pre-line';
 }
@@ -10577,7 +10632,6 @@ function restThreat(){
 }
 function rest(){
   if(ui||over)return;
-  godDeed('patience',0.5);
   /* a watch that was never relieved does not lie down */
   if(P.cl&&P.cl.noRest&&!P.sk.canRest)
     return say('You do not lie down. You have not lain down in a very long time '+
@@ -10616,6 +10670,7 @@ function rest(){
     var fb=Math.min(P.focMax-P.foc,Math.max(1,Math.round(5*Math.min(1,n/12))));
     P.foc+=fb;fpBack=' +'+fb+' FP.';
   }
+  if(n>0)godDeed('patience',0.5);
   say('You rest '+n+' turns.'+fpBack,'good');
   if(woke)say('You are up again \u2014 '+(canSeeMon(woke)?monKind(woke).n+' is coming, '+bearing(woke.x,woke.y):'something is moving close by')+'.','hit');
   /* a person who can mend does it while they are sitting down anyway */
@@ -14504,7 +14559,13 @@ function showCodex(tab){
   var read=[];LORE.forEach(function(L,i){if(CODEX.indexOf(i)!==-1)read.push(i);});
   var rituals=RITUALS.filter(function(R){return DONE.indexOf(R.id)!==-1;});
 
-  if(!toldNow.length&&!read.length&&!rituals.length){
+  /* v0.28: your god — who it is and what you have found out about it */
+  var liveGod=!!(P&&P.god&&!archSwap&&codexHome!=='menu');
+  var GL=load('delve.godlore',{}),loreGods=GODS.filter(function(g){var q=GL[g.id];return q&&(q.like.length||q.hate.length);});
+  var godTab=liveGod||loreGods.length>0;
+  if(codexTab==='god'&&!godTab)codexTab='all';
+  if(godTab&&!toldNow.length&&!read.length&&!rituals.length&&codexTab==='all')codexTab='god';
+  if(!toldNow.length&&!read.length&&!rituals.length&&!godTab){
     var e=document.createElement('p');e.className='frag locked';
     e.textContent='Nothing yet. Leaves turn up on the floor, cut into walls, sung, painted, '+
       'and told to you by people who will sit down and tell you the whole of something.';
@@ -14528,6 +14589,7 @@ function showCodex(tab){
   if(marked.length)tabs.push(['mark','About the mark',marked.length]);
   var knownR=(P&&P.knowR&&!archSwap)?Object.keys(P.knowR):[];
   if(knownR.length)tabs.push(['riddle','Riddles you know',knownR.length]);
+  if(godTab)tabs.push(['god',liveGod?'Your god':'The gods',liveGod?((P.godKnow||[]).length):loreGods.length]);
   tabs.forEach(function(t){
     var btn=document.createElement('button');
     btn.className='ctab'+(codexTab===t[0]?' on':'');
@@ -14550,7 +14612,9 @@ function showCodex(tab){
     body.appendChild(ts);
   }
 
-  if(codexTab==='riddle'){
+  if(codexTab==='god'){
+    body.appendChild(godCodex(liveGod,GL));
+  } else if(codexTab==='riddle'){
     var rs=document.createElement('div');rs.className='cbook';
     var rh=document.createElement('h4');rh.textContent='Riddles you have read the answers to';rs.appendChild(rh);
     knownR.forEach(function(k){var R=RIDDLES[+k];if(R)rs.appendChild(entry('\u201c'+R.q+'\u201d','',' \u2014 '+R.a+'.'));});
@@ -14605,6 +14669,54 @@ function showCodex(tab){
     btn:'Back',go:function(){closeUI();archiveRestore();if(codexHome==='menu')titleScreen();else paint();}});
   $('veilFlavor').style.whiteSpace='pre-line';
   body.hidden=false;
+}
+/* the Your god tab: this run's god, what you have found out this run, and what
+   you already knew of it from earlier runs (likes and dislikes never change) */
+function godCodex(live,GL){
+  var box=document.createElement('div');
+  var nm=function(id){return DEEDS[id]?DEEDS[id].n:id;};
+  var known=function(g,sec){
+    var q=GL[g.id];if(!q||!(q.like.length||q.hate.length))return false;
+    if(q.like.length)sec.appendChild(entry('It likes','',' '+q.like.map(nm).join('; ')+'.'));
+    if(q.hate.length)sec.appendChild(entry('It will not abide','',' '+q.hate.map(nm).join('; ')+'.'));
+    var all=g.dl&&q.like.length>=g.dl.length&&q.hate.length>=g.dh.length;
+    var n=document.createElement('p');n.className='frag locked';
+    n.textContent=all?'That is everything it cares about.':'There may be more you have not found out.';
+    sec.appendChild(n);
+    return true;
+  };
+  if(live){
+    var g=godOf();godMind();
+    (P.godKnow||[]).forEach(function(q){godLoreAdd(q.k);});GL=load('delve.godlore',{});
+    var sec=document.createElement('div');sec.className='cbook';
+    var h=document.createElement('h4');h.textContent='Your god this run — '+cap(g.n);sec.appendChild(h);
+    sec.appendChild(entry('What it is','',' '+cap(g.about||'')+'.'));
+    var nt=document.createElement('p');nt.className='frag locked';
+    nt.textContent='What a god likes and will not abide is the same every run. Its temper, and the gifts it wants, are drawn fresh each time. Pray with p; on an altar you can feel how it regards you.';
+    sec.appendChild(nt);
+    var kh=document.createElement('p');kh.className='ckind';kh.textContent='Found out this run';sec.appendChild(kh);
+    var K=P.godKnow||[];
+    if(!K.length){var e0=document.createElement('p');e0.className='frag locked';
+      e0.textContent='Nothing yet. Altars, scraps of other people’s prayers, and the moments it lets you feel it watching will tell you.';sec.appendChild(e0);}
+    K.forEach(function(q){
+      var felt=q.k.indexOf('felt:')===0;
+      sec.appendChild(entry(felt?'Felt':(q.k.indexOf('like:')===0?'A clue — something it likes':(q.k.indexOf('hate:')===0?'A clue — something it hates':'A clue')),
+        q.d?'floor '+q.d:'',' '+(felt?q.t:'“'+q.t+'”')));
+    });
+    var ph=document.createElement('p');ph.className='ckind';ph.textContent='All you know of it, over every run on this device';sec.appendChild(ph);
+    if(!known(g,sec)){var e1=document.createElement('p');e1.className='frag locked';
+      e1.textContent='Nothing yet about what it likes or hates.';sec.appendChild(e1);}
+    box.appendChild(sec);
+  }
+  var others=GODS.filter(function(g){return !(live&&g.id===P.god);});
+  var any=false,sec2=document.createElement('div');sec2.className='cbook';
+  var h2=document.createElement('h4');h2.textContent=live?'The other gods':'What you know of the gods';sec2.appendChild(h2);
+  others.forEach(function(g){
+    var q=GL[g.id];if(!q||!(q.like.length||q.hate.length))return;
+    any=true;var k2=document.createElement('p');k2.className='ckind';k2.textContent=cap(g.n);sec2.appendChild(k2);known(g,sec2);
+  });
+  if(any)box.appendChild(sec2);
+  return box;
 }
 function entry(title,tag,text,pre){
   var p=document.createElement('p');p.className='frag';
@@ -16012,8 +16124,15 @@ function openSharedReplay(id){
 /* ═══════════════ versions ═══════════════
    What version this is, and what each one added. A delver remembers the
    version they were made on, so a run that started on an older build says so. */
-var GAME_VERSION='0.27.3';
+var GAME_VERSION='0.28';
 var VERSIONS=[
+ {v:'0.28',d:'19 Nov 2026',n:[
+  'Each god now likes and hates the same things every run (its temper and the gifts it wants are still random). Old saves switch over; clues that are no longer true are dropped.',
+  'A god that hates haste no longer counts going down to rest or to get away. It only minds you skipping a floor: down within 120 turns of arriving, having seen less than a third of it, unhurt and not being chased.',
+  'Resting only counts as patience if you actually rest (a refused rest no longer does).',
+  'Codex: a new Your god tab — who your god is, every clue and feeling you have had this run (with the floor), and what you already know of it from earlier runs on this device. From the title screen it shows what you know of every god.',
+  'Village Idiot: the class and its skills now say what they do in numbers (Slow Learner, Picked It Up, Still Here, Lucky, Odd Jobs, Keep Going, Sit Down).'
+ ]},
  {v:'0.27.3',d:'18 Nov 2026',n:[
   'Book III gains a ninth song, Absolution Apparatus, and the soundtrack page plays it in its place between Red Silhouette and Heartstrings.'
  ]},
@@ -16471,7 +16590,7 @@ function charSheet(){
     '<p class="legendHead">What you have learned</p>'+sk+
     (rit?'<p class="legendHead">Rituals taken</p><table class="rec keys2">'+rit+'</table>':'')+
     hexSheet()+
-    '<p class="legendHead">Your god</p><p class="legendNote">'+esc(cap(godOf().n))+' \u2014 '+esc(godOf().about||'')+'. What it wants changes every run. Pray with p; on an altar you can feel how it regards you.</p>'+
+    '<p class="legendHead">Your god</p><p class="legendNote">'+esc(cap(godOf().n))+' \u2014 '+esc(godOf().about||'')+'. What it likes and will not abide is the same every run; its temper, and the gifts it wants, are not. Pray with p; on an altar you can feel how it regards you. (Also in the Codex, under Your god.)</p>'+
     (godKnowLines().length?'<table class="rec keys2">'+godKnowLines().map(function(t){return '<tr><td>'+esc(t)+'</td></tr>';}).join('')+'</table>'
       :'<p class="legendNote">You know nothing yet of what it wants. Altars and scraps of other people\u2019s prayers will tell you.</p>')+
     (res.length?'<p class="legendHead">Proof against</p><table class="rec keys2">'+resistList().map(function(R){
